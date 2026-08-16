@@ -133,7 +133,7 @@ const EditPresetDialog = ({
 
   return (
     <OGDialog open={presetModalVisible} onOpenChange={handleOpenChange} triggerRef={triggerRef}>
-      <OGDialogContent className="h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-y-auto bg-surface-dialog md:h-auto md:max-h-[90vh] md:max-w-[75vw] md:rounded-lg lg:max-w-[950px]">
+      <OGDialogContent className="h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-y-auto bg-surface-dialog md:h-auto md:max-h-[90vh] md:max-w-[75vw] md:rounded-lg lg:max-w-[59.375rem]">
         <OGDialogTitle>
           {localize('com_ui_edit_preset_title', { title: preset?.title })}
         </OGDialogTitle>
@@ -175,7 +175,7 @@ const EditPresetDialog = ({
           {/* PopoverButtons section */}
           <div className="flex w-full">
             <PopoverButtons
-              buttonClass="ml-0 w-full border border-border-medium p-2 h-[40px] justify-center mt-0"
+              buttonClass="ml-0 w-full border border-border-medium p-2 h-[2.5rem] justify-center mt-0"
               iconClass="hidden lg:block w-4"
               endpoint={endpoint}
               endpointType={endpointType}
