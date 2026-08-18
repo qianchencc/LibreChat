@@ -88,7 +88,7 @@ const PresetsMenu: FC = () => {
           sideOffset={8}
           collisionPadding={16}
           aria-label={localize('com_endpoint_examples')}
-          className="z-50 max-h-[30.9375rem] overflow-x-hidden rounded-lg border border-border-light bg-presentation text-text-primary shadow-lg md:min-w-[25rem]"
+          className="z-50 max-h-[min(30.9375rem,80vh)] overflow-x-hidden rounded-lg border border-border-light bg-presentation text-text-primary shadow-lg md:min-w-[min(25rem,90vw)]"
         >
           <PresetItems
             presets={presetsQuery.data}
