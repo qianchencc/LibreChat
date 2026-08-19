@@ -8,44 +8,71 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: librechat-production
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     if: github.repository == 'qianchencc/LibreChat'
-    runs-on: [self-hosted, linux, x64, librechat-prod]
+    runs-on: [self-hosted, linux, x64, librechat-build]
     timeout-minutes: 45
 
     steps:
       - name: Check out source
         uses: actions/checkout@v5
 
-      - name: Build production image
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push production image
         env:
-          IMAGE: librechat-ci:${{ github.sha }}
+          IMAGE: ghcr.io/qianchencc/librechat:${{ github.sha }}
         run: |
           docker build \
             --network host \
-            --build-arg HTTP_PROXY=http://localhost:7890 \
-            --build-arg HTTPS_PROXY=http://localhost:7890 \
+            --build-arg HTTP_PROXY=http://127.0.0.1:17890 \
+            --build-arg HTTPS_PROXY=http://127.0.0.1:17890 \
             --build-arg NO_PROXY=localhost,127.0.0.1,::1 \
             --build-arg BUILD_COMMIT="${GITHUB_SHA}" \
             --build-arg BUILD_BRANCH="${GITHUB_REF_NAME}" \
             --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --tag "${IMAGE}" \
             .
+          docker push "${IMAGE}"
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, x64, librechat-prod]
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out deployment config
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy and verify
         env:
-          IMAGE: librechat-ci:${{ github.sha }}
+          IMAGE: ghcr.io/qianchencc/librechat:${{ github.sha }}
           DEPLOY_DIR: /vol2/1000/Plugins/librechat
         run: |
           set -eu
           previous_image="$(docker inspect LibreChat --format '{{.Image}}')"
+          docker pull "${IMAGE}"
           docker tag "${IMAGE}" librechat-local:latest
+          install -m 0644 librechat.yaml "${DEPLOY_DIR}/librechat.yaml"
           cd "${DEPLOY_DIR}"
           docker compose up -d --no-deps api
 

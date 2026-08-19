@@ -1,0 +1,17 @@
+[Unit]
+Description=GitHub Actions runner for LibreChat builds
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/lab/actions-runner-librechat-build
+Environment=HTTP_PROXY=http://127.0.0.1:17890
+Environment=HTTPS_PROXY=http://127.0.0.1:17890
+Environment=NO_PROXY=localhost,127.0.0.1,::1
+ExecStart=/home/lab/actions-runner-librechat-build/run.sh
+Restart=always
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=default.target
