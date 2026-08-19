@@ -1,7 +1,7 @@
 # v0.8.8-rc1
 
 # Base node image
-FROM node:24.16.0-alpine AS node
+FROM registry-1.docker.io/library/node:24.16.0-alpine AS node
 
 RUN apk upgrade --no-cache
 RUN apk add --no-cache jemalloc

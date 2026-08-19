@@ -1,0 +1,69 @@
+name: Build and deploy LibreChat
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: librechat-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: github.repository == 'qianchencc/LibreChat'
+    runs-on: [self-hosted, linux, x64, librechat-prod]
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Build production image
+        env:
+          IMAGE: librechat-ci:${{ github.sha }}
+        run: |
+          docker build \
+            --network host \
+            --build-arg HTTP_PROXY=http://localhost:7890 \
+            --build-arg HTTPS_PROXY=http://localhost:7890 \
+            --build-arg NO_PROXY=localhost,127.0.0.1,::1 \
+            --build-arg BUILD_COMMIT="${GITHUB_SHA}" \
+            --build-arg BUILD_BRANCH="${GITHUB_REF_NAME}" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --tag "${IMAGE}" \
+            .
+
+      - name: Deploy and verify
+        env:
+          IMAGE: librechat-ci:${{ github.sha }}
+          DEPLOY_DIR: /vol2/1000/Plugins/librechat
+        run: |
+          set -eu
+          previous_image="$(docker inspect LibreChat --format '{{.Image}}')"
+          docker tag "${IMAGE}" librechat-local:latest
+          cd "${DEPLOY_DIR}"
+          docker compose up -d --no-deps api
+
+          healthy=false
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3080/ >/dev/null; then
+              healthy=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "${healthy}" = true ]; then
+            docker compose ps api
+            exit 0
+          fi
+
+          docker compose logs --tail=100 api
+          docker tag "${previous_image}" librechat-local:latest
+          docker compose up -d --no-deps api
+          exit 1
