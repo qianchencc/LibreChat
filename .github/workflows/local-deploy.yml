@@ -28,6 +28,7 @@ jobs:
           IMAGE: librechat-ci:${{ github.sha }}
           ARTIFACT: /home/lab/librechat-artifacts/librechat-${{ github.sha }}.tar.zst
         run: |
+          docker logout ghcr.io || true
           docker buildx inspect librechat-builder --bootstrap
           docker buildx build \
             --builder librechat-builder \
