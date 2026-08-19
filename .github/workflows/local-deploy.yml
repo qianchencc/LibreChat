@@ -14,10 +14,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     if: github.repository == 'qianchencc/LibreChat'
     runs-on: [self-hosted, linux, x64, librechat-build]
-    timeout-minutes: 45
+    timeout-minutes: 50
 
     steps:
       - name: Check out source
@@ -26,8 +26,8 @@ jobs:
       - name: Build production image
         env:
           IMAGE: librechat-ci:${{ github.sha }}
-          ARTIFACT: /home/lab/librechat-artifacts/librechat-${{ github.sha }}.tar.zst
         run: |
+          set -euo pipefail
           docker logout ghcr.io || true
           docker buildx inspect librechat-builder --bootstrap
           docker buildx build \
@@ -42,57 +42,23 @@ jobs:
             --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --tag "${IMAGE}" \
             .
-          mkdir -p "$(dirname "${ARTIFACT}")"
-          docker save "${IMAGE}" | zstd -T0 -3 -q -f -o "${ARTIFACT}.tmp"
-          mv "${ARTIFACT}.tmp" "${ARTIFACT}"
 
-  deploy:
-    needs: build
-    runs-on: [self-hosted, linux, x64, librechat-prod]
-    timeout-minutes: 10
-
-    steps:
-      - name: Check out deployment config
-        uses: actions/checkout@v5
-
-      - name: Deploy and verify
+      - name: Transfer and deploy over LAN
         env:
           IMAGE: librechat-ci:${{ github.sha }}
-          ARTIFACT: /home/lab/librechat-artifacts/librechat-${{ github.sha }}.tar.zst
+          PROD_HOST: admin@10.5.12.112
+          PROD_PORT: 40022
+          SSH_KEY: /home/lab/.ssh/librechat_prod_ed25519
           DEPLOY_DIR: /vol2/1000/Plugins/librechat
-          LAB_HOST: lab@10.15.11.185
-          SSH_KEY: /home/admin/.ssh/librechat_lab_proxy_ed25519
+          REMOTE_CONFIG: /tmp/librechat-${{ github.sha }}.yaml
         run: |
-          set -eu
-          cleanup() {
-            ssh -o BatchMode=yes -i "${SSH_KEY}" "${LAB_HOST}" "rm -f '${ARTIFACT}'" || true
-          }
-          trap cleanup EXIT
-
-          previous_image="$(docker inspect LibreChat --format '{{.Image}}')"
-          ssh -o BatchMode=yes -i "${SSH_KEY}" "${LAB_HOST}" "cat '${ARTIFACT}'" \
-            | zstd -dc \
-            | docker load
-          docker tag "${IMAGE}" librechat-local:latest
-          install -m 0644 librechat.yaml "${DEPLOY_DIR}/librechat.yaml"
-          cd "${DEPLOY_DIR}"
-          docker compose up -d --no-deps api
-
-          healthy=false
-          for attempt in $(seq 1 30); do
-            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3080/ >/dev/null; then
-              healthy=true
-              break
-            fi
-            sleep 2
-          done
-
-          if [ "${healthy}" = true ]; then
-            docker compose ps api
-            exit 0
-          fi
-
-          docker compose logs --tail=100 api
-          docker tag "${previous_image}" librechat-local:latest
-          docker compose up -d --no-deps api
-          exit 1
+          set -euo pipefail
+          ssh_args=(-o BatchMode=yes -p "${PROD_PORT}" -i "${SSH_KEY}")
+          scp_args=(-o BatchMode=yes -P "${PROD_PORT}" -i "${SSH_KEY}")
+          docker save "${IMAGE}" \
+            | zstd -T0 -3 -q \
+            | ssh "${ssh_args[@]}" "${PROD_HOST}" 'zstd -dc | docker load'
+          scp "${scp_args[@]}" librechat.yaml "${PROD_HOST}:${REMOTE_CONFIG}"
+          ssh "${ssh_args[@]}" "${PROD_HOST}" \
+            "IMAGE='${IMAGE}' DEPLOY_DIR='${DEPLOY_DIR}' CONFIG='${REMOTE_CONFIG}' bash -s" \
+            < deploy/deploy.sh
