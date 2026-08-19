@@ -32,7 +32,21 @@ jobs:
           IMAGE: ghcr.io/qianchencc/librechat:${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker build \
+          if ! docker buildx inspect librechat-builder >/dev/null 2>&1; then
+            crane pull moby/buildkit:buildx-stable-1 "${RUNNER_TEMP}/buildkit.tar"
+            docker load --input "${RUNNER_TEMP}/buildkit.tar"
+            docker buildx create \
+              --name librechat-builder \
+              --driver docker-container \
+              --driver-opt image=moby/buildkit:buildx-stable-1 \
+              --driver-opt network=host \
+              --driver-opt env.HTTP_PROXY=http://127.0.0.1:17890 \
+              --driver-opt env.HTTPS_PROXY=http://127.0.0.1:17890
+          fi
+          docker buildx inspect librechat-builder --bootstrap
+          docker buildx build \
+            --builder librechat-builder \
+            --load \
             --network host \
             --build-arg HTTP_PROXY=http://127.0.0.1:17890 \
             --build-arg HTTPS_PROXY=http://127.0.0.1:17890 \
