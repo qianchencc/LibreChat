@@ -3,9 +3,10 @@
 Pushes to `main` use two self-hosted GitHub Actions runners:
 
 1. `librechat-build` on the development host checks out the commit, builds the production
-   image, and pushes `ghcr.io/qianchencc/librechat:<commit-sha>` to GHCR.
-2. `librechat-prod` on the production host pulls that immutable image, tags it as
-   `librechat-local:latest`, and recreates only the `api` service.
+   image, and writes an immutable zstd-compressed image tar named with the commit SHA.
+2. `librechat-prod` on the production host streams that tar over the existing LAN SSH
+   connection, loads it into Docker, tags it as `librechat-local:latest`, and recreates only
+   the `api` service. The temporary tar is deleted after deployment.
 3. The deployment job checks `http://127.0.0.1:3080/`. On failure it restores the previous
    image and recreates the service again.
 
