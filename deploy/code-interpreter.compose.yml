@@ -1,0 +1,96 @@
+services:
+  api:
+    image: librechat-code-api:local
+    container_name: librechat-code-api
+    restart: unless-stopped
+    ports:
+      - '0.0.0.0:3112:3112'
+    environment:
+      LOCAL_MODE: 'false'
+      CODEAPI_HARDENED_SANDBOX_MODE: 'true'
+      CODEAPI_AUTH_PROVIDER: librechat-jwt
+      CODEAPI_JWT_ISSUER: librechat
+      CODEAPI_JWT_AUDIENCE: codeapi
+      CODEAPI_JWT_ALLOWED_ALGS: EdDSA
+      CODEAPI_JWT_JWKS_JSON: ${CODEAPI_JWT_JWKS_JSON:?required}
+      CODEAPI_JWT_SINGLE_TENANT_ID: librechat
+      CODEAPI_TENANT_ISOLATION_STRICT: 'false'
+      CODEAPI_INTERNAL_SERVICE_TOKEN: ${CODEAPI_INTERNAL_SERVICE_TOKEN:?required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+
+  service-worker:
+    image: librechat-code-worker:local
+    container_name: librechat-code-worker
+    restart: unless-stopped
+    environment:
+      LOCAL_MODE: 'false'
+      CODEAPI_HARDENED_SANDBOX_MODE: 'true'
+      CODEAPI_AUTH_PROVIDER: librechat-jwt
+      CODEAPI_JWT_SINGLE_TENANT_ID: librechat
+      CODEAPI_TENANT_ISOLATION_STRICT: 'false'
+      CODEAPI_EXECUTION_MANIFEST_PRIVATE_KEY: ${CODEAPI_EXECUTION_MANIFEST_PRIVATE_KEY:?required}
+      CODEAPI_INTERNAL_SERVICE_TOKEN: ${CODEAPI_INTERNAL_SERVICE_TOKEN:?required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+
+  egress_gateway:
+    image: librechat-code-egress:local
+    container_name: librechat-code-egress
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      CODEAPI_HARDENED_SANDBOX_MODE: 'true'
+      CODEAPI_EGRESS_LEDGER_REQUIRED: 'true'
+      CODEAPI_EGRESS_GRANT_SECRET: ${CODEAPI_EGRESS_GRANT_SECRET:?required}
+      CODEAPI_INTERNAL_SERVICE_TOKEN: ${CODEAPI_INTERNAL_SERVICE_TOKEN:?required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+
+  tool_call_server:
+    image: librechat-code-tools:local
+    container_name: librechat-code-tools
+    restart: unless-stopped
+    environment:
+      CODEAPI_INTERNAL_SERVICE_TOKEN: ${CODEAPI_INTERNAL_SERVICE_TOKEN:?required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+
+  sandbox-runner:
+    image: librechat-code-sandbox:local
+    container_name: librechat-code-sandbox
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      KVM_ENABLED: 'true'
+      CODEAPI_HARDENED_SANDBOX_MODE: 'true'
+      SANDBOX_REQUIRE_EGRESS_MANIFEST: 'true'
+      SANDBOX_EXECUTION_MANIFEST_PUBLIC_KEY: ${SANDBOX_EXECUTION_MANIFEST_PUBLIC_KEY:?required}
+
+  file_server:
+    image: librechat-code-files:local
+    container_name: librechat-code-files
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      MINIO_BUCKET: librechat-code
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?required}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?required}
+      CODEAPI_INTERNAL_SERVICE_TOKEN: ${CODEAPI_INTERNAL_SERVICE_TOKEN:?required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+
+  redis:
+    container_name: librechat-code-redis
+    restart: unless-stopped
+    command: ['redis-server', '--requirepass', '${REDIS_PASSWORD:?required}']
+    ports: !reset []
+
+  minio:
+    container_name: librechat-code-minio
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?required}
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.241.0.0/24
