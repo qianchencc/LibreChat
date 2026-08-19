@@ -24,16 +24,13 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v5
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up crane
+        uses: imjasonh/setup-crane@v0.4
 
       - name: Build and push production image
         env:
           IMAGE: ghcr.io/qianchencc/librechat:${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker build \
             --network host \
@@ -45,7 +42,9 @@ jobs:
             --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --tag "${IMAGE}" \
             .
-          docker push "${IMAGE}"
+          docker save "${IMAGE}" --output "${RUNNER_TEMP}/librechat.tar"
+          echo "${GITHUB_TOKEN}" | crane auth login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+          crane push "${RUNNER_TEMP}/librechat.tar" "${IMAGE}"
 
   deploy:
     needs: build
