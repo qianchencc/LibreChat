@@ -7,7 +7,6 @@ import type { TError, TPluginAction } from 'librechat-data-provider';
 import type { ToolItem } from '../../items/types';
 import type { AgentForm } from '~/common';
 import PluginAuthForm from '~/components/Plugins/Store/PluginAuthForm';
-import { pluginNeedsAuth } from '../../items/auth';
 import { useLocalize } from '~/hooks';
 
 interface Props {
@@ -20,7 +19,7 @@ export default function ToolSection({ item }: Props) {
   const { getValues, setValue } = useFormContext<AgentForm>();
   const updateUserPlugins = useUpdateUserPluginsMutation();
 
-  const requiresAuth = pluginNeedsAuth(item.plugin);
+  const requiresAuth = item.status === 'needs_setup';
   const [savedAuth, setSavedAuth] = useState(false);
   const [editing, setEditing] = useState(false);
 

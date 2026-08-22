@@ -188,6 +188,30 @@ describe('buildCatalog', () => {
     expect(tool?.status).toBeUndefined();
   });
 
+  test('does not require standalone image credentials when the agent provider is ready', () => {
+    const items = buildCatalog({
+      ...toolInputs,
+      imageProviderReady: true,
+      regularTools: [
+        makePlugin({
+          pluginKey: 'image_gen_oai',
+          name: 'OpenAI Image Tools',
+          description: 'Images',
+          authConfig: [
+            {
+              authField: 'IMAGE_GEN_OAI_API_KEY',
+              label: 'Image API Key',
+              description: '',
+            },
+          ],
+          authenticated: false,
+        }),
+      ],
+    });
+    const tool = items.find((i) => i.kind === 'tool');
+    expect(tool?.status).toBeUndefined();
+  });
+
   test('leaves status undefined for a tool with no authConfig', () => {
     const items = buildCatalog({
       ...toolInputs,

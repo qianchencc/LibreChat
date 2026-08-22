@@ -52,6 +52,7 @@ describe('loadCustomEndpointsConfig – user credential prompts', () => {
     expect(config?.['User URL']).toEqual(
       expect.objectContaining({
         userProvide: true,
+        userProvideKey: false,
         userProvideURL: true,
       }),
     );
@@ -65,6 +66,7 @@ describe('loadCustomEndpointsConfig – user credential prompts', () => {
     expect(config?.['User Key']).toEqual(
       expect.objectContaining({
         userProvide: true,
+        userProvideKey: true,
         userProvideURL: false,
       }),
     );
@@ -78,6 +80,7 @@ describe('loadCustomEndpointsConfig – user credential prompts', () => {
     expect(config?.['Admin Trusted']).toEqual(
       expect.objectContaining({
         userProvide: false,
+        userProvideKey: false,
         userProvideURL: false,
       }),
     );
