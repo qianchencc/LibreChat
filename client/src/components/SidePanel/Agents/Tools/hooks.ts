@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { useToastContext } from '@librechat/client';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import { useUpdateUserPluginsMutation } from 'librechat-data-provider/react-query';
 import {
   Tools,
@@ -15,9 +16,10 @@ import {
 import type { TSkillSummary } from 'librechat-data-provider';
 import type { AgentForm, ExtendedFile } from '~/common';
 import type { AgentItem } from './items/types';
+import { useLocalize, useHasAccess, useHasMemoryAccess, useUserKey } from '~/hooks';
 import { useVerifyAgentToolAuth, useGetAgentFiles } from '~/data-provider';
-import { useLocalize, useHasAccess, useHasMemoryAccess } from '~/hooks';
 import { useFileMapContext, useAgentPanelContext } from '~/Providers';
+import { isImageProviderReady } from './items/imageProvider';
 import { deriveSelectedItems } from './items/selectors';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { buildCatalog } from './items/catalog';
@@ -158,7 +160,8 @@ export function useAgentItems({
   skillsPermission = false,
 }: UseAgentItemsOptions): AgentItemsResult {
   const { control } = useFormContext<AgentForm>();
-  const { agentsConfig, regularTools, mcpServersMap, actions } = useAgentPanelContext();
+  const { agentsConfig, regularTools, mcpServersMap, actions, endpointsConfig } =
+    useAgentPanelContext();
   const hasMcpAccess = useHasAccess({
     permissionType: PermissionTypes.MCP_SERVERS,
     permission: Permissions.USE,
@@ -168,6 +171,7 @@ export function useAgentItems({
   const builtinAuthMap = useBuiltinAuthMap();
 
   const toolsField = useWatch({ control, name: 'tools' });
+  const providerField = useWatch({ control, name: 'provider' });
   const skillsWatch = useWatch({ control, name: 'skills' });
   const tools = useMemo(() => (toolsField ?? []) as string[], [toolsField]);
   const skillsField = useMemo(() => (skillsWatch ?? []) as string[], [skillsWatch]);
@@ -177,6 +181,24 @@ export function useAgentItems({
   const memory = (useWatch({ control, name: 'memory' }) ?? false) as boolean;
   const artifacts = (useWatch({ control, name: 'artifacts' }) ?? '') as string;
   const { contextFiles, knowledgeFiles, codeFiles } = useAgentFileEntries();
+  let provider: string | undefined;
+  if (typeof providerField === 'string') {
+    provider = providerField;
+  } else if (typeof providerField?.value === 'string') {
+    provider = providerField.value;
+  }
+  const { data: models } = useGetModelsQuery();
+  const { getExpiry, checkExpiry } = useUserKey(provider ?? '');
+  const imageProviderReady = useMemo(
+    () =>
+      isImageProviderReady({
+        provider,
+        endpointConfig: provider ? endpointsConfig?.[provider] : undefined,
+        models,
+        hasUserKey: Boolean(getExpiry() && checkExpiry()),
+      }),
+    [provider, endpointsConfig, models, getExpiry, checkExpiry],
+  );
 
   const agentActions = useMemo(
     () => (actions ?? []).filter((a) => a.agent_id === agentId),
@@ -195,6 +217,7 @@ export function useAgentItems({
         showMemory,
         webSearchUserProvided,
         builtinAuthMap,
+        imageProviderReady,
       }),
     [
       agentsConfig,
@@ -207,6 +230,7 @@ export function useAgentItems({
       showMemory,
       webSearchUserProvided,
       builtinAuthMap,
+      imageProviderReady,
     ],
   );
 

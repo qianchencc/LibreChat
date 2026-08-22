@@ -59,6 +59,7 @@ const { createFileSearchTool, primeFiles: primeSearchFiles } = require('./fileSe
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { getUserPluginAuthValue } = require('~/server/services/PluginService');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
+const { resolveImageProviderConfig } = require('./resolveImageProvider');
 const { getMCPServerTools, checkCapability } = require('~/server/services/Config');
 const { getMCPServersRegistry } = require('~/config');
 const { getRoleByName, setMemory, deleteMemory, getFormattedMemories } = require('~/models');
@@ -203,7 +204,12 @@ const loadTools = async ({
   const customConstructors = {
     image_gen_oai: async (_toolContextMap, dynamicToolContextMap) => {
       const authFields = getAuthFields('image_gen_oai');
-      const authValues = await loadAuthValues({ userId: user, authFields });
+      const authValues = await loadAuthValues({ userId: user, authFields, throwError: false });
+      const imageProviderConfig = await resolveImageProviderConfig({
+        agent,
+        req: options.req,
+        userId: user,
+      });
       const imageFiles = options.tool_resources?.[EToolResources.image_edit]?.files ?? [];
       const toolContext = buildImageToolContext({
         imageFiles,
@@ -215,6 +221,8 @@ const loadTools = async ({
       }
       return createOpenAIImageTools({
         ...authValues,
+        ...imageProviderConfig,
+        agent,
         isAgent: !!agent,
         req: options.req,
         imageOutputType,

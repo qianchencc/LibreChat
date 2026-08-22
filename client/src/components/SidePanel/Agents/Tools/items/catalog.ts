@@ -51,6 +51,8 @@ export interface BuildCatalogInputs {
    * user key exists; SYSTEM_DEFINED deployments have nothing to configure.
    */
   webSearchUserProvided?: boolean;
+  /** Whether the current agent provider can satisfy image_gen_oai credentials. */
+  imageProviderReady?: boolean;
 }
 
 interface BuiltinDef {
@@ -174,6 +176,9 @@ export function buildCatalog(inputs: BuildCatalogInputs): AgentItem[] {
       if (plugin.pluginKey === 'ask_user_question') {
         continue; // surfaced as a builtin above — don't double-list as a plugin
       }
+      const imageProviderReady =
+        plugin.pluginKey === 'image_gen_oai' && inputs.imageProviderReady === true;
+      const status = imageProviderReady || !pluginNeedsAuth(plugin) ? undefined : 'needs_setup';
       items.push({
         kind: 'tool',
         id: plugin.pluginKey,
@@ -181,7 +186,7 @@ export function buildCatalog(inputs: BuildCatalogInputs): AgentItem[] {
         description: plugin.description ?? '',
         iconKey: 'tool',
         plugin,
-        status: pluginNeedsAuth(plugin) ? 'needs_setup' : undefined,
+        status,
       });
     }
   }

@@ -70,6 +70,7 @@ describe('hasConfigurableSettings', () => {
       name: 'SerpApi',
       description: '',
       iconKey: 'tool',
+      status: 'needs_setup',
       plugin: makePlugin({
         pluginKey: 'serpapi',
         authConfig: [{ authField: 'SERPAPI_API_KEY', label: 'Key', description: '' }],
@@ -78,5 +79,22 @@ describe('hasConfigurableSettings', () => {
     };
     expect(hasConfigurableSettings(noAuth)).toBe(false);
     expect(hasConfigurableSettings(needsAuth)).toBe(true);
+  });
+
+  test('a ready image provider tool is not configurable with standalone credentials', () => {
+    const readyImageTool: AgentItem = {
+      kind: 'tool',
+      id: 'image_gen_oai',
+      name: 'OpenAI Image Tools',
+      description: '',
+      iconKey: 'tool',
+      status: undefined,
+      plugin: makePlugin({
+        pluginKey: 'image_gen_oai',
+        authConfig: [{ authField: 'IMAGE_GEN_OAI_API_KEY', label: 'Key', description: '' }],
+        authenticated: false,
+      }),
+    };
+    expect(hasConfigurableSettings(readyImageTool)).toBe(false);
   });
 });

@@ -1,5 +1,4 @@
 import type { AgentItem } from './types';
-import { pluginNeedsAuth } from './auth';
 
 /**
  * Whether an item's detail dialog exposes configurable controls (credentials,
@@ -18,7 +17,7 @@ export function hasConfigurableSettings(item: AgentItem): boolean {
         (item.id === 'web_search' && item.userProvidedAuth === true)
       );
     case 'tool':
-      return pluginNeedsAuth(item.plugin);
+      return item.status === 'needs_setup';
     case 'mcp':
     case 'action':
       return true;
