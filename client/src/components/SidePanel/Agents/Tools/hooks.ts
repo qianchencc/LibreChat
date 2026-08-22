@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { useToastContext } from '@librechat/client';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import { useUpdateUserPluginsMutation } from 'librechat-data-provider/react-query';
 import {
   Tools,
@@ -12,17 +13,16 @@ import {
   PermissionTypes,
   AgentCapabilities,
 } from 'librechat-data-provider';
-import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import type { TSkillSummary } from 'librechat-data-provider';
 import type { AgentForm, ExtendedFile } from '~/common';
 import type { AgentItem } from './items/types';
-import { useVerifyAgentToolAuth, useGetAgentFiles } from '~/data-provider';
 import { useLocalize, useHasAccess, useHasMemoryAccess, useUserKey } from '~/hooks';
+import { useVerifyAgentToolAuth, useGetAgentFiles } from '~/data-provider';
 import { useFileMapContext, useAgentPanelContext } from '~/Providers';
+import { isImageProviderReady } from './items/imageProvider';
 import { deriveSelectedItems } from './items/selectors';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { buildCatalog } from './items/catalog';
-import { isImageProviderReady } from './items/imageProvider';
 import { processAgentOption } from '~/utils';
 
 /**
