@@ -78,6 +78,8 @@ export interface ToolExecuteOptions {
   loadTools: (
     toolNames: string[],
     agentId?: string,
+    /** Immutable run configuration available before deferred tools connect. */
+    configurable?: Record<string, unknown>,
   ) => Promise<{
     loadedTools: StructuredToolInterface[];
     /** Additional configurable properties to merge (e.g., userMCPAuthMap) */
@@ -3848,12 +3850,13 @@ export function createToolExecuteHandler(options: ToolExecuteOptions): EventHand
         await runOutsideTracing(async () => {
           try {
             const toolNames = [...new Set(toolCalls.map((tc: ToolCallRequest) => tc.name))];
+            const sourceConfigurable = configurable as Record<string, unknown> | undefined;
             const { loadedTools, configurable: toolConfigurable } = await loadTools(
               toolNames,
               agentId,
+              sourceConfigurable,
             );
             const toolMap = new Map(loadedTools.map((t) => [t.name, t]));
-            const sourceConfigurable = configurable as Record<string, unknown> | undefined;
             const loadedConfigurable = toolConfigurable as Record<string, unknown> | undefined;
             const mergedConfigurable = mergeToolConfigurables(
               sourceConfigurable,
@@ -4089,10 +4092,13 @@ export function createToolExecuteHandler(options: ToolExecuteOptions): EventHand
             const results: ToolExecuteResult[] = await Promise.all(
               toolCalls.map(async (tc: ToolCallRequest) => {
                 if (backgroundControlEnabled && tc.name === CHECK_BACKGROUND_TASK_NAME) {
-                  const pollContent = runCheckBackgroundTask({
+                  const pollContent = await runCheckBackgroundTask({
                     userId: backgroundUserId,
                     conversationId: backgroundConversationId,
                     args: tc.args,
+                    toolCallId: tc.id,
+                    agentId,
+                    runId: `${backgroundRunId ?? ''}:${tc.turn ?? ''}`,
                     subagentTasks,
                   });
                   /** Deliver a completed task's artifact through THIS live poll

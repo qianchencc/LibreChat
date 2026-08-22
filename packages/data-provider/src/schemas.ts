@@ -765,6 +765,9 @@ export const tPluginSchema = z.object({
   chatMenu: z.boolean().optional(),
   isButton: z.boolean().optional(),
   toolkit: z.boolean().optional(),
+  /** Raw upstream tool name when the model-facing key stripped a redundant
+   *  server-name prefix — proves upstream identity for legacy id migration. */
+  serverToolName: z.string().optional(),
 });
 
 export type TPlugin = z.infer<typeof tPluginSchema>;
@@ -895,10 +898,17 @@ export type UIResource = {
   [key: string]: unknown;
 };
 
+export type WorkspaceChange = {
+  profile: 'stateful';
+  operation: 'created' | 'updated';
+  path: string;
+};
+
 export type TAttachmentMetadata = {
   type?: Tools;
   messageId: string;
   toolCallId: string;
+  workspaceChange?: WorkspaceChange;
   [Tools.memory]?: MemoryArtifact;
   [Tools.ui_resources]?: UIResource[];
   [Tools.web_search]?: SearchResultData;

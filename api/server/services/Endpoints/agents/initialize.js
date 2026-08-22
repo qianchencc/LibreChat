@@ -102,6 +102,7 @@ function createToolLoader(signal, streamId = null, definitionsOnly = false, jobC
     provider,
     tool_options,
     tool_resources,
+    requestBody,
     codeExecutionContext,
     accessibleMcpServerNames,
   }) {
@@ -114,6 +115,7 @@ function createToolLoader(signal, streamId = null, definitionsOnly = false, jobC
         signal,
         streamId,
         jobCreatedAt,
+        requestBody,
         tool_resources,
         codeExecutionContext,
         definitionsOnly,
@@ -137,6 +139,7 @@ function createToolLoader(signal, streamId = null, definitionsOnly = false, jobC
  * @param {Object} params.endpointOption
  * @param {number} [params.jobCreatedAt]
  * @param {string} [params.checkpointNamespace] Immutable saver-level generation scope
+ * @param {import('@librechat/api').MCPRuntimeRequestBody} [params.requestBody]
  */
 const initializeClient = async ({
   req,
@@ -145,6 +148,7 @@ const initializeClient = async ({
   endpointOption,
   jobCreatedAt,
   checkpointNamespace,
+  requestBody,
 }) => {
   if (!endpointOption) {
     throw new Error('Endpoint option not provided');
@@ -154,6 +158,7 @@ const initializeClient = async ({
    * that trusted document for child-thread execution policy; resume and direct
    * callers fall back to the same owner-scoped lookup. */
   const conversationId = req.body?.conversationId;
+  const runtimeRequestBody = requestBody ?? req.body;
   let requestConversationPromise = Promise.resolve(null);
   if (Object.prototype.hasOwnProperty.call(req, 'resolvedConversation')) {
     requestConversationPromise = Promise.resolve(req.resolvedConversation);
@@ -334,6 +339,7 @@ const initializeClient = async ({
         signal,
         streamId,
         conversationId,
+        requestBody: runtimeRequestBody,
         toolNames,
         agent: ctx.agent,
         toolRegistry: ctx.toolRegistry,
@@ -496,6 +502,7 @@ const initializeClient = async ({
       requestFiles,
       conversationId,
       parentMessageId,
+      requestBody: runtimeRequestBody,
       agent: primaryAgent,
       endpointOption,
       allowedProviders,
@@ -561,6 +568,7 @@ const initializeClient = async ({
       requestFiles,
       conversationId,
       parentMessageId,
+      requestBody: runtimeRequestBody,
       computeAccessibleSkillIds: (agent) =>
         resolveAgentScopedSkillIds({
           agent,
@@ -651,6 +659,7 @@ const initializeClient = async ({
     userMCPAuthMap,
     conversationId,
     parentMessageId,
+    requestBody: runtimeRequestBody,
     allowedProviders,
     primaryAgentId: primaryConfig.id,
     accessibleSkillIds,
@@ -940,6 +949,7 @@ const initializeClient = async ({
           requestFiles,
           conversationId,
           parentMessageId,
+          requestBody: runtimeRequestBody,
           endpointOption: { ...endpointOption, endpoint: EModelEndpoint.agents },
           allowedProviders,
           accessibleSkillIds: scopedSkillIds,
@@ -1210,7 +1220,7 @@ const initializeClient = async ({
   }
 
   /** Build detached execution only for an attributable owner/thread. New
-   * tasks still require a spawnable child, while an existing process-local
+   * tasks still require a spawnable child, while an existing registered live
    * task keeps its poll/control seam after agent configuration changes. The
    * SDK receives only this trusted host scope; models can select a child
    * `threadId`, never the owner or parent-thread namespace. */
@@ -1228,17 +1238,34 @@ const initializeClient = async ({
     req.user.id !== '' &&
     typeof conversationId === 'string' &&
     conversationId !== ''
-      ? buildSubagentThreadTaskConfig(subagentThreadTaskStore, {
-          userId: req.user.id,
-          parentConversationId: conversationId,
-          ...(typeof req.user.tenantId === 'string' && req.user.tenantId !== ''
-            ? { tenantId: req.user.tenantId }
-            : {}),
-        })
+      ? buildSubagentThreadTaskConfig(
+          subagentThreadTaskStore,
+          {
+            userId: req.user.id,
+            parentConversationId: conversationId,
+            ...(typeof req.user.tenantId === 'string' && req.user.tenantId !== ''
+              ? { tenantId: req.user.tenantId }
+              : {}),
+          },
+          {
+            completionWakeups: subagentThreadTaskStore.completionWakeupsEnabled === true,
+          },
+        )
       : undefined;
-  const hasExistingSubagentTask =
-    trustedSubagentTasks != null &&
-    trustedSubagentTasks.store.list(trustedSubagentTasks.scopeId).length > 0;
+  let hasExistingSubagentTask = false;
+  if (trustedSubagentTasks != null && !(subagentsAvailableForRun && hasSpawnableSubagent)) {
+    try {
+      hasExistingSubagentTask = await subagentThreadTaskStore.hasTasks(
+        trustedSubagentTasks.scopeId,
+      );
+    } catch (error) {
+      /** Keep the poll/control tool visible when the owner directory is briefly
+       * unavailable. The tool then returns an honest `unavailable` status
+       * instead of making a live task look nonexistent. */
+      logger.warn('[initializeClient] Failed to inspect routed subagent tasks', error);
+      hasExistingSubagentTask = true;
+    }
+  }
   const subagentTasks =
     trustedSubagentTasks != null &&
     ((subagentsAvailableForRun && hasSpawnableSubagent) || hasExistingSubagentTask)
@@ -1400,6 +1427,7 @@ const initializeClient = async ({
     toolInputValidationErrors,
     jobCreatedAt,
     checkpointNamespace,
+    mcpRequestBody: runtimeRequestBody,
   });
 
   if (streamId) {
