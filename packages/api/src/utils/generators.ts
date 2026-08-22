@@ -7,6 +7,7 @@ import type { Agent as HttpAgent } from 'node:http';
 import type { URL as NodeURL } from 'node:url';
 import type { ServerSentEvent } from '~/types';
 import { sendEvent } from './events';
+import { normalizeOpenAIResponsesResponse } from './openaiResponses';
 
 type SSRFSafeAgents = {
   httpAgent: HttpAgent;
@@ -20,6 +21,7 @@ type SSRFSafeAgents = {
  * @param params.reverseProxyUrl - The reverse proxy URL to use for the request.
  * @param params.ssrfAgents - Optional SSRF-safe agents for user-provided URLs.
  * @param params.redirect - Optional redirect policy for user-provided URLs.
+ * @param params.normalizeResponses - Normalize third-party Responses API output for LangChain.
  * @returns A promise that resolves to the response of the fetch request.
  */
 export function createFetch({
@@ -27,11 +29,13 @@ export function createFetch({
   reverseProxyUrl = '',
   ssrfAgents,
   redirect,
+  normalizeResponses = false,
 }: {
   directEndpoint?: boolean;
   reverseProxyUrl?: string;
   ssrfAgents?: SSRFSafeAgents;
   redirect?: fetch.RequestRedirect;
+  normalizeResponses?: boolean;
 }) {
   /**
    * Makes an HTTP request and logs the process.
@@ -56,10 +60,18 @@ export function createFetch({
     if (redirect) {
       requestInit.redirect = redirect;
     }
-    if (typeof Bun !== 'undefined') {
-      return await fetch(url, requestInit);
+    const response =
+      normalizeResponses && !ssrfAgents
+        ? ((await globalThis.fetch(
+            url as string,
+            requestInit as Parameters<typeof globalThis.fetch>[1],
+          )) as unknown as fetch.Response)
+        : await fetch(url, requestInit);
+    if (!normalizeResponses) {
+      return response;
     }
-    return await fetch(url, requestInit);
+
+    return (await normalizeOpenAIResponsesResponse(url, response)) as fetch.Response;
   };
 }
 

@@ -6,7 +6,7 @@ import type * as t from '~/types';
 import { getGoogleConfig, stripGeminiFlashBlockedParams } from '~/endpoints/google/llm';
 import { getLLMConfig as getAnthropicLLMConfig } from '~/endpoints/anthropic/llm';
 import { createSSRFSafeAgents, createSSRFSafeUndiciConnect } from '~/auth';
-import { getOpenAILLMConfig, extractDefaultParams } from './llm';
+import { getOpenAILLMConfig, extractDefaultParams, isCanonicalOpenAIBaseURL } from './llm';
 import { transformToOpenAIConfig } from './transform';
 import { getProxyDispatcher } from '~/utils/proxy';
 import { constructAzureURL } from '~/utils/azure';
@@ -294,12 +294,19 @@ export function getOpenAIConfig(
     configOptions.organization = process.env.OPENAI_ORGANIZATION;
   }
 
-  if (directEndpoint === true && configOptions?.baseURL != null) {
+  const configuredBaseURL = configOptions.baseURL;
+  const normalizeResponses =
+    llmConfig.useResponsesApi === true &&
+    configuredBaseURL != null &&
+    !isCanonicalOpenAIBaseURL(configuredBaseURL);
+
+  if ((directEndpoint === true || normalizeResponses) && configuredBaseURL != null) {
     configOptions.fetch = createFetch({
-      directEndpoint: directEndpoint,
-      reverseProxyUrl: configOptions?.baseURL,
+      directEndpoint: directEndpoint === true,
+      reverseProxyUrl: configuredBaseURL,
       ssrfAgents,
       redirect: shouldProtectUserBaseURL ? 'error' : undefined,
+      normalizeResponses,
     }) as unknown as Fetch;
   }
 

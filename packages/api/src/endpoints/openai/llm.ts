@@ -151,7 +151,7 @@ function requiresResponsesApiForReasoning({
  * `reverseProxyUrl`/`directEndpoint` gateway sets a custom base URL and may
  * expose only `/v1/chat/completions`, so it keeps its configured path.
  */
-function isCanonicalOpenAIBaseURL(baseURL?: string | null): boolean {
+export function isCanonicalOpenAIBaseURL(baseURL?: string | null): boolean {
   if (!baseURL) {
     return true;
   }

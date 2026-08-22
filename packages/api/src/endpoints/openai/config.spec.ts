@@ -1193,6 +1193,24 @@ describe('getOpenAIConfig', () => {
   });
 
   describe('Direct Endpoint Configuration', () => {
+    it('creates a compatibility fetch for custom Responses API gateways', () => {
+      const result = getOpenAIConfig(mockApiKey, {
+        modelOptions: { useResponsesApi: true },
+        reverseProxyUrl: 'https://gateway.example/v1',
+      });
+
+      expect(result.configOptions?.fetch).toEqual(expect.any(Function));
+    });
+
+    it('does not wrap the canonical OpenAI Responses API', () => {
+      const result = getOpenAIConfig(mockApiKey, {
+        modelOptions: { useResponsesApi: true },
+        reverseProxyUrl: 'https://api.openai.com/v1',
+      });
+
+      expect(result.configOptions?.fetch).toBeUndefined();
+    });
+
     it('should create custom fetch for direct endpoint', () => {
       const result = getOpenAIConfig(mockApiKey, {
         directEndpoint: true,

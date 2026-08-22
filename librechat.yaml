@@ -8,19 +8,19 @@ interface:
 
 endpoints:
   custom:
-    - name: 'QianC Gateway'
+    - name: '尘Proxy'
       apiKey: 'user_provided'
       baseURL: 'http://100.77.131.18:8080/v1'
       models:
         default:
-          - 'gpt-5.6'
+          - 'gpt-5.6-luna'
           - 'gpt-5.6-sol'
           - 'gpt-5.6-terra'
           - 'gpt-5.5'
           - 'gpt-5.4'
           - 'gpt-5.4-mini'
-          - 'gpt-image-1.5'
+          - 'gpt-image-2'
         fetch: true
       titleConvo: true
       titleModel: 'current_model'
-      modelDisplayLabel: 'QianC'
+      modelDisplayLabel: '尘Proxy'
