@@ -184,6 +184,7 @@ describe('getOpenAIConfig - Backward Compatibility', () => {
           defaultQuery: {
             'api-version': 'preview',
           },
+          fetch: expect.any(Function),
         },
         tools: [],
       });
