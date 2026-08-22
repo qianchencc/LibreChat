@@ -161,4 +161,48 @@ describe('OpenAIImageTools - IMAGE_GEN_OAI_MODEL environment variable', () => {
       expect.any(Object),
     );
   });
+
+  it('should prefer injected provider credentials and model over environment variables', async () => {
+    process.env.IMAGE_GEN_OAI_API_KEY = 'env-api-key';
+    process.env.IMAGE_GEN_OAI_BASEURL = 'https://env.example/v1';
+    process.env.IMAGE_GEN_OAI_MODEL = 'env-image-model';
+
+    const mockGenerate = jest.fn().mockResolvedValue({
+      data: [
+        {
+          b64_json: 'base64-encoded-image-data',
+        },
+      ],
+    });
+
+    OpenAI.mockImplementation(() => ({
+      images: {
+        generate: mockGenerate,
+      },
+    }));
+
+    const [imageGenTool] = createOpenAIImageTools({
+      isAgent: true,
+      override: false,
+      req: { user: { id: 'test-user' } },
+      IMAGE_GEN_OAI_API_KEY: 'provider-api-key',
+      IMAGE_GEN_OAI_BASEURL: 'http://provider.example/v1',
+      IMAGE_GEN_OAI_MODEL: 'gpt-image-2',
+    });
+
+    await imageGenTool.func({ prompt: 'test prompt' });
+
+    expect(OpenAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKey: 'provider-api-key',
+        baseURL: 'http://provider.example/v1',
+      }),
+    );
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'gpt-image-2',
+      }),
+      expect.any(Object),
+    );
+  });
 });

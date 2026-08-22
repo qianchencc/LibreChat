@@ -54,6 +54,9 @@ function createAbortHandler() {
  * @param {ServerRequest} fields.req - Whether the tool is being used in an agent context
  * @param {boolean} fields.isAgent - Whether the tool is being used in an agent context
  * @param {string} fields.IMAGE_GEN_OAI_API_KEY - The OpenAI API key
+ * @param {string} fields.IMAGE_GEN_OAI_BASEURL - The OpenAI-compatible image API base URL
+ * @param {string} fields.IMAGE_GEN_OAI_MODEL - The image model
+ * @param {string} fields.IMAGE_GEN_OAI_AZURE_API_VERSION - The Azure API version
  * @param {boolean} [fields.override] - Whether to override the API key check, necessary for app initialization
  * @param {MongoFile[]} [fields.imageFiles] - The images to be used for editing
  * @param {string} [fields.imageOutputType] - The image output type configuration
@@ -82,28 +85,32 @@ function createOpenAIImageTools(fields = {}) {
   let apiKey = fields.IMAGE_GEN_OAI_API_KEY ?? getApiKey();
   const closureConfig = { apiKey };
 
-  const imageModel = process.env.IMAGE_GEN_OAI_MODEL || 'gpt-image-1';
+  const imageModel =
+    fields.IMAGE_GEN_OAI_MODEL ??
+    (!override ? process.env.IMAGE_GEN_OAI_MODEL : undefined) ??
+    'gpt-image-1';
 
   let baseURL = 'https://api.openai.com/v1/';
-  if (!override && process.env.IMAGE_GEN_OAI_BASEURL) {
-    baseURL = extractBaseURL(process.env.IMAGE_GEN_OAI_BASEURL);
+  const configuredBaseURL =
+    fields.IMAGE_GEN_OAI_BASEURL ?? (!override ? process.env.IMAGE_GEN_OAI_BASEURL : undefined);
+  if (configuredBaseURL) {
+    baseURL = extractBaseURL(configuredBaseURL);
     closureConfig.baseURL = baseURL;
   }
 
   // Note: Azure may not yet support the latest image generation models
-  if (
-    !override &&
-    process.env.IMAGE_GEN_OAI_AZURE_API_VERSION &&
-    process.env.IMAGE_GEN_OAI_BASEURL
-  ) {
-    baseURL = process.env.IMAGE_GEN_OAI_BASEURL;
+  const azureApiVersion =
+    fields.IMAGE_GEN_OAI_AZURE_API_VERSION ??
+    (!override ? process.env.IMAGE_GEN_OAI_AZURE_API_VERSION : undefined);
+  if (azureApiVersion && configuredBaseURL) {
+    baseURL = configuredBaseURL;
     closureConfig.baseURL = baseURL;
-    closureConfig.defaultQuery = { 'api-version': process.env.IMAGE_GEN_OAI_AZURE_API_VERSION };
+    closureConfig.defaultQuery = { 'api-version': azureApiVersion };
     closureConfig.defaultHeaders = {
-      'api-key': process.env.IMAGE_GEN_OAI_API_KEY,
+      'api-key': apiKey,
       'Content-Type': 'application/json',
     };
-    closureConfig.apiKey = process.env.IMAGE_GEN_OAI_API_KEY;
+    closureConfig.apiKey = apiKey;
   }
 
   const imageFiles = fields.imageFiles ?? [];
@@ -327,7 +334,7 @@ Error Message: ${error.message}`);
         ...formData.getHeaders(),
       };
 
-      if (process.env.IMAGE_GEN_OAI_AZURE_API_VERSION && process.env.IMAGE_GEN_OAI_BASEURL) {
+      if (azureApiVersion && configuredBaseURL) {
         headers['api-key'] = apiKey;
       } else {
         headers['Authorization'] = `Bearer ${apiKey}`;
@@ -355,9 +362,9 @@ Error Message: ${error.message}`);
 
         applyAxiosProxyConfig(axiosConfig, baseURL);
 
-        if (process.env.IMAGE_GEN_OAI_AZURE_API_VERSION && process.env.IMAGE_GEN_OAI_BASEURL) {
+        if (azureApiVersion && configuredBaseURL) {
           axiosConfig.params = {
-            'api-version': process.env.IMAGE_GEN_OAI_AZURE_API_VERSION,
+            'api-version': azureApiVersion,
             ...axiosConfig.params,
           };
         }

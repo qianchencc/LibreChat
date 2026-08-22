@@ -11,6 +11,14 @@ const mockCreateMCPTool = jest.fn();
 const mockCreateMCPTools = jest.fn();
 const mockGetServerConfig = jest.fn();
 const mockGetAccessibleMcpServerNames = jest.fn(async () => []);
+const mockImageGenerate = jest.fn();
+const mockOpenAI = jest.fn(() => ({
+  images: {
+    generate: (...args) => mockImageGenerate(...args),
+  },
+}));
+
+jest.mock('openai', () => mockOpenAI);
 
 const mockCreateSearchTool = jest.fn(() => ({ name: 'web_search' }));
 const mockLoadWebSearchAuth = jest.fn(async () => ({
@@ -89,6 +97,7 @@ const { Tools, Constants } = require('librechat-data-provider');
 const { ASK_USER_QUESTION_TOOL_NAME } = require('@librechat/api');
 
 const { User } = require('~/db/models');
+const models = require('~/models');
 const PluginService = require('~/server/services/PluginService');
 const { validateTools, loadTools, loadToolWithAuth } = require('./handleTools');
 const { StructuredSD, availableTools, DALLE3 } = require('../');
@@ -242,6 +251,10 @@ describe('Tool Handlers', () => {
     beforeEach(() => {
       originalEnv = process.env;
       process.env = { ...originalEnv };
+      mockImageGenerate.mockReset().mockResolvedValue({
+        data: [{ b64_json: 'base64-encoded-image-data' }],
+      });
+      mockOpenAI.mockClear();
     });
 
     afterEach(() => {
@@ -337,6 +350,59 @@ describe('Tool Handlers', () => {
       const structuredTool = await toolFunctions['stable-diffusion']();
       expect(structuredTool).toBeInstanceOf(StructuredSD);
       delete process.env.SD_WEBUI_URL;
+    });
+
+    it('uses the current custom provider credentials and image model', async () => {
+      const userId = fakeUser._id.toString();
+      const getUserKeyValuesSpy = jest
+        .spyOn(models, 'getUserKeyValues')
+        .mockResolvedValue({ apiKey: 'provider-api-key' });
+
+      try {
+        const { loadedTools } = await loadTools({
+          user: userId,
+          agent: { id: 'agent-id', provider: '尘Proxy' },
+          tools: ['image_gen_oai'],
+          options: {
+            req: {
+              user: { id: userId, role: 'USER' },
+              config: {
+                endpoints: {
+                  custom: [
+                    {
+                      name: '尘Proxy',
+                      apiKey: 'user_provided',
+                      baseURL: 'http://provider.example/v1',
+                      models: {
+                        default: ['gpt-5.6-luna', 'gpt-image-2'],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        });
+        const imageGenTool = loadedTools.find((tool) => tool.name === 'image_gen_oai');
+        await imageGenTool.func({ prompt: 'test prompt' });
+
+        expect(getUserKeyValuesSpy).toHaveBeenCalledWith({
+          userId,
+          name: '尘Proxy',
+        });
+        expect(mockOpenAI).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiKey: 'provider-api-key',
+            baseURL: 'http://provider.example/v1',
+          }),
+        );
+        expect(mockImageGenerate).toHaveBeenCalledWith(
+          expect.objectContaining({ model: 'gpt-image-2' }),
+          expect.any(Object),
+        );
+      } finally {
+        getUserKeyValuesSpy.mockRestore();
+      }
     });
 
     it('loads the ask_user_question tool when not returning a map', async () => {
