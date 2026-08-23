@@ -74,7 +74,7 @@ const SKILL_DISPLAY_TITLE_MAX = SKILL_DISPLAY_TITLE_MAX_LENGTH;
 const SKILL_BODY_MAX = SKILL_BODY_MAX_LENGTH;
 const SKILL_FILE_PATH_MAX = 500;
 const SKILL_NAME_PATTERN = SKILL_NAME_PATTERN_SHARED;
-const RELATIVE_PATH_CHARS = /^[a-zA-Z0-9._\-/]+$/;
+const RELATIVE_PATH_CHARS = /^[a-zA-Z0-9._\-/[\]]+$/;
 
 /**
  * Brand namespaces reserved for Anthropic-published skills and first-party

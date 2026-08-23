@@ -15,7 +15,7 @@ export function isSafeSkillFilePath(p: string): boolean {
       return false;
     }
   }
-  return /^[a-zA-Z0-9._\-/]+$/.test(p);
+  return /^[a-zA-Z0-9._\-/[\]]+$/.test(p);
 }
 
 /**

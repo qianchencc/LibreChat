@@ -250,6 +250,7 @@ describe('skill validation helpers', () => {
   it('accepts well-formed relative paths', () => {
     expect(validateRelativePath('scripts/parse.sh')).toEqual([]);
     expect(validateRelativePath('references/schema.md')).toEqual([]);
+    expect(validateRelativePath('templates/xlsx/[Content_Types].xml')).toEqual([]);
   });
 
   it('infers category from top-level prefix', () => {
