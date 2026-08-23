@@ -10,7 +10,6 @@ import {
   CreateMultipartUploadCommand,
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
-  HeadObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import type {
@@ -754,19 +753,6 @@ export async function deleteFileFromS3(req: ServerRequest, file: TFile): Promise
   const params = { Bucket: bucketName, Key: key };
 
   try {
-    try {
-      const headCommand = new HeadObjectCommand(params);
-      await s3.send(headCommand);
-      logger.debug('[deleteFileFromS3] File exists, proceeding with deletion');
-    } catch (headErr) {
-      if ((headErr as { name?: string }).name === 'NotFound') {
-        logger.warn(`[deleteFileFromS3] File does not exist: ${key}`);
-        await deleteRagFile({ userId: ownerId, file });
-        return;
-      }
-      throw headErr;
-    }
-
     await s3.send(new DeleteObjectCommand(params));
     await deleteRagFile({ userId: ownerId, file });
     logger.debug('[deleteFileFromS3] S3 File deletion completed');

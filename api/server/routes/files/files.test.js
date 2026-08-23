@@ -736,6 +736,63 @@ describe('File Routes - Delete with Agent Access', () => {
       );
     });
 
+    it('returns an inline content URL without forcing attachment disposition', async () => {
+      const userFileId = uuidv4();
+      const getDownloadURL = jest.fn().mockResolvedValue('https://cdn.example.com/file.pdf?signed');
+      getStrategyFunctions.mockReturnValue({ getDownloadURL });
+
+      await createFile({
+        user: otherUserId,
+        file_id: userFileId,
+        filename: 'file.pdf',
+        filepath: 'uploads/user/file.pdf',
+        storageKey: 'uploads/user/file.pdf',
+        bytes: 200,
+        type: 'application/pdf',
+        source: FileSources.s3,
+      });
+
+      const response = await request(app).get(
+        `/files/download-url/${otherUserId}/${userFileId}?inline=true`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.type).toBe('application/pdf');
+      expect(getDownloadURL).toHaveBeenCalledWith(
+        expect.objectContaining({
+          file: expect.objectContaining({ file_id: userFileId }),
+          customFilename: null,
+          contentType: 'application/pdf',
+        }),
+      );
+    });
+
+    it('keeps download disposition for non-renderable attachment types', async () => {
+      const userFileId = uuidv4();
+      const getDownloadURL = jest.fn().mockResolvedValue('https://cdn.example.com/archive.zip');
+      getStrategyFunctions.mockReturnValue({ getDownloadURL });
+
+      await createFile({
+        user: otherUserId,
+        file_id: userFileId,
+        filename: 'archive.zip',
+        filepath: 'uploads/user/archive.zip',
+        storageKey: 'uploads/user/archive.zip',
+        bytes: 200,
+        type: 'application/zip',
+        source: FileSources.s3,
+      });
+
+      const response = await request(app).get(
+        `/files/download-url/${otherUserId}/${userFileId}?inline=true`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(getDownloadURL).toHaveBeenCalledWith(
+        expect.objectContaining({ customFilename: 'archive.zip' }),
+      );
+    });
+
     it('returns 501 when the strategy does not support direct URLs', async () => {
       const userFileId = uuidv4();
       getStrategyFunctions.mockReturnValue({});

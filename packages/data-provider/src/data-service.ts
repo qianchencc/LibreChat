@@ -804,8 +804,10 @@ export const getFileDownload = async (userId: string, file_id: string): Promise<
 export const getFileDownloadURL = async (
   userId: string,
   file_id: string,
+  inline = false,
 ): Promise<f.FileDownloadURLResponse> => {
-  return request.get(`${endpoints.files()}/download-url/${userId}/${file_id}`);
+  const query = inline ? '?inline=true' : '';
+  return request.get(`${endpoints.files()}/download-url/${userId}/${file_id}${query}`);
 };
 
 /** Blob download for a snapshotted file served through a shared link. */

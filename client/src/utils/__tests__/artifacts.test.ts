@@ -4,13 +4,42 @@ import {
   buildSandpackOptions,
   detectArtifactTypeFromFile,
   fileToArtifact,
+  getAttachmentFileIds,
   isCodeOnlyArtifact,
   isPreviewOnlyArtifact,
   languageForFilename,
+  resolveAttachmentReferences,
   TOOL_ARTIFACT_TYPES,
 } from '../artifacts';
 
 const TAILWIND_CDN = 'https://cdn.tailwindcss.com/3.4.17#tailwind.js';
+
+describe('Artifact attachment references', () => {
+  it('extracts unique file IDs in source order', () => {
+    expect(
+      getAttachmentFileIds(
+        '<img src="attachment://file-1"><a href="attachment://file_2">x</a><img src="attachment://file-1">',
+      ),
+    ).toEqual(['file-1', 'file_2']);
+  });
+
+  it('replaces resolved references and preserves unresolved references', () => {
+    const source = '<img src="attachment://file-1"><a href="attachment://missing">x</a>';
+
+    expect(
+      resolveAttachmentReferences(source, {
+        'file-1': 'https://minio.example.com/file-1?signed=true',
+      }),
+    ).toBe(
+      '<img src="https://minio.example.com/file-1?signed=true"><a href="attachment://missing">x</a>',
+    );
+  });
+
+  it('leaves source without references unchanged', () => {
+    const source = '<main>No attachments</main>';
+    expect(resolveAttachmentReferences(source, {})).toBe(source);
+  });
+});
 
 describe('buildSandpackOptions', () => {
   it('includes externalResources with .js fragment hint for static template', () => {

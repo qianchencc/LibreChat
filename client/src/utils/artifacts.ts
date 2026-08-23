@@ -170,6 +170,21 @@ export function getProps(type: string): Partial<SandpackProviderProps> {
   };
 }
 
+const attachmentReferencePattern = /attachment:\/\/([A-Za-z0-9_-]+)/g;
+
+export function getAttachmentFileIds(content: string): string[] {
+  return [
+    ...new Set(Array.from(content.matchAll(attachmentReferencePattern), (match) => match[1])),
+  ];
+}
+
+export function resolveAttachmentReferences(content: string, urls: Record<string, string>): string {
+  return content.replace(
+    attachmentReferencePattern,
+    (reference, fileId: string) => urls[fileId] ?? reference,
+  );
+}
+
 /** Fragment hint lets Sandpack's static-template regex detect `.js` from the URL;
  * without it, the versioned CDN path (`/3.4.17`) has no recognised extension and
  * `injectExternalResources` throws "Unable to determine file type". */

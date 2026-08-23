@@ -807,6 +807,104 @@ describe('initializeAgent — stable and dynamic instruction fields', () => {
 
     expect(result.additional_instructions).toBe('Existing dynamic\n\nArtifact guidance');
   });
+
+  it('passes eligible user attachments to artifact guidance', async () => {
+    const { generateArtifactsPrompt } = jest.requireMock('~/prompts') as {
+      generateArtifactsPrompt: jest.Mock;
+    };
+    const { primeResources } = jest.requireMock('../resources') as {
+      primeResources: jest.Mock;
+    };
+    const upload = {
+      file_id: 'upload-1',
+      filename: 'photo.png',
+      type: 'image/png',
+      context: 'message_attachment',
+    };
+    const generated = {
+      file_id: 'generated-1',
+      filename: 'chart.png',
+      type: 'image/png',
+      context: 'execute_code',
+    };
+    const agentContext = {
+      file_id: 'context-1',
+      filename: 'agent-context.pdf',
+      type: 'application/pdf',
+      context: 'context',
+    };
+    primeResources.mockResolvedValueOnce({
+      attachments: [upload, generated, agentContext],
+      requestAttachments: [upload, generated],
+      agentContextAttachments: [agentContext],
+      tool_resources: undefined,
+    });
+    generateArtifactsPrompt.mockReturnValue('Artifact guidance');
+
+    const { agent, req, res, loadTools, db } = createMocks();
+    agent.artifacts = 'enabled' as never;
+
+    await initializeAgent(
+      {
+        req,
+        res,
+        agent,
+        loadTools,
+        endpointOption: { endpoint: EModelEndpoint.agents },
+        allowedProviders: new Set([Providers.OPENAI]),
+        isInitialAgent: true,
+      },
+      db,
+    );
+
+    expect(generateArtifactsPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [upload] }),
+    );
+  });
+
+  it('loads owner-scoped conversation uploads when artifacts are enabled', async () => {
+    const historicalFile = {
+      file_id: 'historical-1',
+      filename: 'photo.png',
+      context: 'message_attachment',
+    } as IMongoFile;
+    const { agent, req, res, loadTools, db } = createMocks();
+    agent.artifacts = 'enabled' as never;
+    req.user = { id: 'user-1', tenantId: 'tenant-1' } as never;
+    mockExtractLibreChatParams.mockReturnValueOnce({
+      resendFiles: true,
+      maxContextTokens: undefined,
+      modelOptions: { model: agent.model },
+    });
+    (db.getConvoFiles as jest.Mock).mockResolvedValueOnce([historicalFile.file_id]);
+    (db.getFiles as jest.Mock).mockResolvedValueOnce([historicalFile]);
+    (db.updateFilesUsage as jest.Mock).mockResolvedValueOnce([historicalFile]);
+
+    await initializeAgent(
+      {
+        req,
+        res,
+        agent,
+        loadTools,
+        conversationId: 'conversation-1',
+        endpointOption: { endpoint: EModelEndpoint.agents },
+        allowedProviders: new Set([Providers.OPENAI]),
+        isInitialAgent: true,
+      },
+      db,
+    );
+
+    expect(db.getFiles).toHaveBeenCalledWith(
+      {
+        file_id: { $in: [historicalFile.file_id] },
+        user: 'user-1',
+        tenantId: 'tenant-1',
+        context: { $ne: 'execute_code' },
+      },
+      { updatedAt: -1 },
+      { text: 0 },
+    );
+  });
 });
 
 describe('initializeAgent — attachment scoping', () => {
