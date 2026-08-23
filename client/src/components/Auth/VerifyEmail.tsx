@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button, Spinner, ThemeSelector } from '@librechat/client';
 import { useVerifyEmailMutation, useResendVerificationEmail } from '~/data-provider';
@@ -13,6 +13,7 @@ function RequestPasswordReset() {
   const [headerText, setHeaderText] = useState<string>('');
   const [showResendLink, setShowResendLink] = useState<boolean>(false);
   const [verificationStatus, setVerificationStatus] = useState<boolean>(false);
+  const submittedVerification = useRef<string>('');
   const token = useMemo(() => params.get('token') || '', [params]);
   const email = useMemo(() => params.get('email') || '', [params]);
 
@@ -64,6 +65,12 @@ function RequestPasswordReset() {
     }
 
     if (token && email) {
+      const verification = `${token}\0${email}`;
+      if (submittedVerification.current === verification) {
+        return;
+      }
+
+      submittedVerification.current = verification;
       verifyEmailMutation.mutate({ email, token });
     } else {
       if (email) {

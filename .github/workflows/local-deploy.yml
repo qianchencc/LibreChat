@@ -51,14 +51,19 @@ jobs:
           SSH_KEY: /home/lab/.ssh/librechat_prod_ed25519
           DEPLOY_DIR: /vol2/1000/Plugins/librechat
           REMOTE_CONFIG: /tmp/librechat-${{ github.sha }}.yaml
+          REMOTE_SKILLS: /tmp/librechat-skills-${{ github.sha }}.tar.gz
         run: |
           set -euo pipefail
           ssh_args=(-o BatchMode=yes -p "${PROD_PORT}" -i "${SSH_KEY}")
           scp_args=(-o BatchMode=yes -P "${PROD_PORT}" -i "${SSH_KEY}")
+          skills_archive="$(mktemp)"
+          trap 'rm -f "${skills_archive}"' EXIT
           docker save "${IMAGE}" \
             | zstd -T0 -3 -q \
             | ssh "${ssh_args[@]}" "${PROD_HOST}" 'zstd -dc | docker load'
+          tar -C skill -czf "${skills_archive}" .
           scp "${scp_args[@]}" librechat.yaml "${PROD_HOST}:${REMOTE_CONFIG}"
+          scp "${scp_args[@]}" "${skills_archive}" "${PROD_HOST}:${REMOTE_SKILLS}"
           ssh "${ssh_args[@]}" "${PROD_HOST}" \
-            "IMAGE='${IMAGE}' DEPLOY_DIR='${DEPLOY_DIR}' CONFIG='${REMOTE_CONFIG}' bash -s" \
+            "IMAGE='${IMAGE}' DEPLOY_DIR='${DEPLOY_DIR}' CONFIG='${REMOTE_CONFIG}' SKILLS_ARCHIVE='${REMOTE_SKILLS}' bash -s" \
             < deploy/deploy.sh
