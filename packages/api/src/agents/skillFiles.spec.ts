@@ -576,6 +576,55 @@ describe('primeSkillFiles — resource identity propagation', () => {
   });
 });
 
+describe('primeSkillFiles — large skill uploads', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('uploads a 360-file skill in complete batches of at most 200 files', async () => {
+    const skillFiles = Array.from({ length: 360 }, (_, index) => ({
+      relativePath: `references/file-${index}.txt`,
+      filename: `file-${index}.txt`,
+      filepath: `/storage/dashi-ppt/references/file-${index}.txt`,
+      source: 's3',
+      bytes: 1,
+    }));
+    const batchSizes: number[] = [];
+    const batchUploadCodeEnvFiles = jest.fn().mockImplementation(({ files }) => {
+      const batchIndex = batchSizes.length;
+      batchSizes.push(files.length);
+      return {
+        storage_session_id: `session-${batchIndex}`,
+        files: files.map((file: { filename: string }, index: number) => ({
+          fileId: `file-${batchIndex}-${index}`,
+          filename: file.filename,
+        })),
+      };
+    });
+    const deps = makeSkillFilesDeps({
+      skill: {
+        _id: SKILL_ID,
+        name: 'dashi-ppt',
+        body: 'skill body',
+        version: SKILL_VERSION,
+      },
+      skillFiles,
+      getStrategyFunctions: jest.fn().mockReturnValue({
+        getDownloadStream: jest.fn().mockResolvedValue(Readable.from(Buffer.from('x'))),
+      }),
+      batchUploadCodeEnvFiles,
+    });
+
+    const result = await primeSkillFiles(deps);
+
+    expect(batchSizes).toEqual([200, 161]);
+    expect(result?.files).toHaveLength(360);
+    expect(new Set(result?.files.map((file) => file.storage_session_id))).toEqual(
+      new Set(['session-0', 'session-1']),
+    );
+  });
+});
+
 /* Codeapi's upload limiter defaults to 30 requests per user per 5 minutes,
  * and a workflow with many cold skills used to fan out one unbounded batch
  * upload per skill. The suite below locks the three mitigations: process-

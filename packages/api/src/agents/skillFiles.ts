@@ -108,6 +108,7 @@ export interface PrimeSkillFilesResult {
 /** Cap on concurrent skill batch uploads per process. Bounds burst pressure
  *  on codeapi's per-user upload limiter (default 30 requests / 5 min). */
 const SKILL_UPLOAD_CONCURRENCY = 3;
+const SKILL_UPLOAD_BATCH_FILES = 200;
 
 /** Retry a 429'd upload only when the server's Retry-After fits under this
  *  cap; a longer wait would stall a live chat turn worse than degrading. */
@@ -149,16 +150,20 @@ async function retryOn429<T>(attempt: () => Promise<T>, label: string): Promise<
 /** Opens SKILL.md and bundled-file streams for one upload attempt. Called
  *  per attempt — a failed upload consumes the streams, so a retry must
  *  re-acquire them. */
-async function collectSkillUploadFiles(params: PrimeSkillFilesParams): Promise<SkillUploadFiles> {
-  const { skill, skillFiles, req, getStrategyFunctions } = params;
+async function collectSkillUploadFiles(
+  params: PrimeSkillFilesParams,
+  skillFiles: SkillFileRecord[],
+  includeSkillBody: boolean,
+): Promise<SkillUploadFiles> {
+  const { skill, req, getStrategyFunctions } = params;
   const filesToUpload: SkillUploadFiles = [];
 
-  // SKILL.md from the skill body
-  const bodyBuffer = Buffer.from(skill.body, 'utf-8');
-  filesToUpload.push({
-    stream: Readable.from(bodyBuffer),
-    filename: `${SKILL_FILE_PREFIX}${skill.name}/SKILL.md`,
-  });
+  if (includeSkillBody) {
+    filesToUpload.push({
+      stream: Readable.from(Buffer.from(skill.body, 'utf-8')),
+      filename: `${SKILL_FILE_PREFIX}${skill.name}/SKILL.md`,
+    });
+  }
 
   // Bundled files from storage (parallel stream acquisition)
   const streamResults = await Promise.allSettled(
@@ -183,6 +188,19 @@ async function collectSkillUploadFiles(params: PrimeSkillFilesParams): Promise<S
   }
 
   return filesToUpload;
+}
+
+function createSkillUploadBatches(skillFiles: SkillFileRecord[]): SkillFileRecord[][] {
+  const batches: SkillFileRecord[][] = [];
+  let offset = 0;
+  const firstBatchSize = SKILL_UPLOAD_BATCH_FILES - 1;
+  batches.push(skillFiles.slice(0, firstBatchSize));
+  offset += firstBatchSize;
+  while (offset < skillFiles.length) {
+    batches.push(skillFiles.slice(offset, offset + SKILL_UPLOAD_BATCH_FILES));
+    offset += SKILL_UPLOAD_BATCH_FILES;
+  }
+  return batches;
 }
 
 /**
@@ -303,65 +321,61 @@ async function executePrimeSkillFiles(
     /* Streams open inside the slot (not while queued) and inside the retry
      * closure (a failed attempt consumes them). The slot bounds concurrent
      * uploads process-wide across both prime call sites. */
-    const uploaded = await uploadSlots(() =>
-      retryOn429(async () => {
-        const filesToUpload = await collectSkillUploadFiles(params);
-        if (filesToUpload.length === 0) {
-          return null;
-        }
-        const result = await batchUploadCodeEnvFiles({
-          req,
-          files: filesToUpload,
-          /* Resource identity for codeapi's sessionKey: skill files share
-           * cross-user-within-tenant under `<tenant>:skill:<id>:v:<version>`.
-           * Bumping `skill.version` on edit naturally invalidates the prior
-           * cache entry under the new sessionKey. */
-          kind: 'skill',
-          id: entityId,
-          version: skill.version,
-          /* Skill files are infrastructure: SKILL.md + bundled scripts/schemas/
-           * docs that the agent reads but should never edit. Tag the upload as
-           * read-only so codeapi seals the inputs (chmod 444 in-sandbox) and
-           * walker echoes the original refs as `inherited: true` even if some
-           * sandboxed code path mutates bytes on disk. Without this, modified
-           * skill files surface as ghost generated artifacts the user has no
-           * authority to download. */
-          read_only: true,
-          codeApiBaseUrl: codeExecutionContext?.baseUrl,
-          executionProfile: codeExecutionContext?.executionProfile,
-        });
-        return { filesToUpload, result };
-      }, `skill "${skill.name}"`),
-    );
-    if (uploaded == null) {
-      return null;
-    }
-    const { filesToUpload, result } = uploaded;
+    const uploadBatches = createSkillUploadBatches(skillFiles);
+    const uploaded = await uploadSlots(async () => {
+      const results: Array<Awaited<ReturnType<typeof batchUploadCodeEnvFiles>>> = [];
+      for (let index = 0; index < uploadBatches.length; index++) {
+        const result = await retryOn429(
+          async () => {
+            const filesToUpload = await collectSkillUploadFiles(
+              params,
+              uploadBatches[index],
+              index === 0,
+            );
+            if (filesToUpload.length === 0) {
+              throw new Error(`No readable files in skill upload batch ${index + 1}`);
+            }
+            return batchUploadCodeEnvFiles({
+              req,
+              files: filesToUpload,
+              kind: 'skill',
+              id: entityId,
+              version: skill.version,
+              read_only: true,
+              codeApiBaseUrl: codeExecutionContext?.baseUrl,
+              executionProfile: codeExecutionContext?.executionProfile,
+            });
+          },
+          `skill "${skill.name}" batch ${index + 1}/${uploadBatches.length}`,
+        );
+        results.push(result);
+      }
+      return results;
+    });
     // Exclude SKILL.md from the returned files array — it is uploaded to disk
     // for bash access but has no codeEnvRef (cannot be cached). Omitting it
     // here keeps the fresh-upload and cache-hit code paths consistent.
-    const files: PrimeSkillFilesResult['files'] = result.files
-      .filter((f) => !f.filename.endsWith('/SKILL.md'))
-      .map((f) => ({
-        id: f.fileId,
-        /* `resource_id` is the skill `_id` (the entity codeapi scopes
-         * the sessionKey on). Distinct from `id` (the per-file storage
-         * uuid) — both are required on the request. */
-        resource_id: entityId,
-        storage_session_id: result.storage_session_id,
-        name: f.filename,
-        kind: 'skill',
-        version: skill.version,
-      }));
+    const files: PrimeSkillFilesResult['files'] = uploaded.flatMap((result) =>
+      result.files
+        .filter((file) => !file.filename.endsWith('/SKILL.md'))
+        .map((file) => ({
+          id: file.fileId,
+          resource_id: entityId,
+          storage_session_id: result.storage_session_id,
+          name: file.filename,
+          kind: 'skill' as const,
+          version: skill.version,
+        })),
+    );
 
     // Treat partial upload failures as a priming failure — missing bundled
     // files cause follow-up bash/read calls to fail at runtime with missing paths.
-    const expectedCount = filesToUpload.filter((f) => !f.filename.endsWith('/SKILL.md')).length;
+    const expectedCount = skillFiles.length;
     if (files.length < expectedCount) {
-      const uploadedNames = new Set(result.files.map((f) => f.filename));
-      const missingNames = filesToUpload
-        .filter((f) => !f.filename.endsWith('/SKILL.md') && !uploadedNames.has(f.filename))
-        .map((f) => f.filename);
+      const uploadedNames = new Set(files.map((file) => file.name));
+      const missingNames = skillFiles
+        .map((file) => `${SKILL_FILE_PREFIX}${skill.name}/${file.relativePath}`)
+        .filter((filename) => !uploadedNames.has(filename));
       logger.error(
         `[primeSkillFiles] Partial upload failure for skill "${skill.name}": ${missingNames.length} file(s) missing: ${missingNames.join(', ')}`,
       );
@@ -388,25 +402,23 @@ async function executePrimeSkillFiles(
        * so strip the `skills/{skillName}/` prefix rather than just the first
        * segment. */
       const sandboxPrefix = `${SKILL_FILE_PREFIX}${skill.name}/`;
-      const updates = result.files
-        .filter((f) => !f.filename.endsWith('/SKILL.md'))
-        .map((f) => {
-          const ref: CodeEnvRef = {
-            kind: 'skill',
-            id: entityId,
-            storage_session_id: result.storage_session_id,
-            file_id: f.fileId,
-            version: skill.version,
-            executionProfile,
-          };
-          return {
-            skillId: skill._id,
-            relativePath: f.filename.startsWith(sandboxPrefix)
-              ? f.filename.slice(sandboxPrefix.length)
-              : f.filename.slice(f.filename.indexOf('/') + 1),
-            codeEnvRef: ref,
-          };
-        });
+      const updates = files.map((file) => {
+        const ref: CodeEnvRef = {
+          kind: 'skill',
+          id: entityId,
+          storage_session_id: file.storage_session_id,
+          file_id: file.id,
+          version: skill.version,
+          executionProfile,
+        };
+        return {
+          skillId: skill._id,
+          relativePath: file.name.startsWith(sandboxPrefix)
+            ? file.name.slice(sandboxPrefix.length)
+            : file.name.slice(file.name.indexOf('/') + 1),
+          codeEnvRef: ref,
+        };
+      });
       if (updates.length > 0) {
         try {
           await updateSkillFileCodeEnvIds(updates);
@@ -419,7 +431,7 @@ async function executePrimeSkillFiles(
       }
     }
 
-    return { storage_session_id: result.storage_session_id, files };
+    return { storage_session_id: uploaded[0].storage_session_id, files };
   } catch (error) {
     logAxiosError({
       message: `[primeSkillFiles] Batch upload failed for skill "${skill.name}"`,
