@@ -6,6 +6,7 @@ describe('isSafeSkillFilePath', () => {
     expect(isSafeSkillFilePath('references/working-patterns.md')).toBe(true);
     expect(isSafeSkillFilePath('assets/img/logo.png')).toBe(true);
     expect(isSafeSkillFilePath('scripts/run.sh')).toBe(true);
+    expect(isSafeSkillFilePath('templates/xlsx/[Content_Types].xml')).toBe(true);
   });
 
   it('rejects traversal, absolute, and empty-segment paths', () => {
