@@ -2,8 +2,9 @@ import React from 'react';
 import { dataService } from 'librechat-data-provider';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { TAuthContext } from '~/common';
 import useResolvedArtifactFiles from '../useResolvedArtifactFiles';
-import { useAuthContext } from '~/hooks/AuthContext';
+import { AuthContext } from '~/hooks/AuthContext';
 
 jest.mock('librechat-data-provider', () => {
   const actual = jest.requireActual('librechat-data-provider');
@@ -16,23 +17,29 @@ jest.mock('librechat-data-provider', () => {
   };
 });
 
-jest.mock('~/hooks/AuthContext', () => ({
-  useAuthContext: jest.fn(),
-}));
-
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  const authContext: TAuthContext = {
+    user: { id: 'user-1' } as TAuthContext['user'],
+    token: 'token',
+    isAuthenticated: true,
+    error: undefined,
+    login: jest.fn(),
+    logout: jest.fn(),
+    setError: jest.fn(),
+  };
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <AuthContext.Provider value={authContext}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </AuthContext.Provider>
   );
 };
 
 describe('useResolvedArtifactFiles', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAuthContext as jest.Mock).mockReturnValue({ user: { id: 'user-1' } });
   });
 
   it('resolves attachment references in the Sandpack working copy', async () => {

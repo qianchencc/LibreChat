@@ -12,6 +12,8 @@ why any new custom CSS cannot be expressed by the shared system. See the detaile
 
 ## Backend auth cache
 
-When adding or changing code that mutates user documents, invalidate the auth user document cache
-for affected users, including bulk role and user mutations. See the detailed policy in `CLAUDE.md`
-under “Auth cache invalidation”.
+When adding or changing code that mutates user documents, invalidate the auth user document cache for affected users. This includes single-user updates and bulk role/user mutations; otherwise OpenID JWT request burst caching can serve a stale `req.user` until its TTL expires.
+
+## Work before work
+
+本项目从另一个项目中fork而来，在涉及改进时优先检查上游是否已经包含类似修复者有何值得引进的功能。
