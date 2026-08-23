@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { QueryKeys, dataService } from 'librechat-data-provider';
 import type { ArtifactFiles } from '~/common';
-import { useAuthContext } from '~/hooks/AuthContext';
 import { getAttachmentFileIds, resolveAttachmentReferences } from '~/utils/artifacts';
+import { useAuthContext } from '~/hooks/AuthContext';
 
 const URL_REFRESH_INTERVAL = 30 * 60_000;
 

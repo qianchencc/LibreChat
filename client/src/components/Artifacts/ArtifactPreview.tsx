@@ -6,8 +6,8 @@ import type {
 } from '@codesandbox/sandpack-react/unstyled';
 import type { SandpackStartupConfig } from '~/utils/artifacts';
 import type { ArtifactFiles } from '~/common';
-import { sharedFiles, buildSandpackOptions } from '~/utils/artifacts';
 import useResolvedArtifactFiles from '~/hooks/Artifacts/useResolvedArtifactFiles';
+import { sharedFiles, buildSandpackOptions } from '~/utils/artifacts';
 
 export const ArtifactPreview = memo(function ({
   files,

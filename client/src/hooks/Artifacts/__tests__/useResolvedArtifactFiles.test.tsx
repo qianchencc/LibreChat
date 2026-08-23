@@ -1,7 +1,7 @@
 import React from 'react';
+import { dataService } from 'librechat-data-provider';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { dataService } from 'librechat-data-provider';
 import useResolvedArtifactFiles from '../useResolvedArtifactFiles';
 import { useAuthContext } from '~/hooks/AuthContext';
 
