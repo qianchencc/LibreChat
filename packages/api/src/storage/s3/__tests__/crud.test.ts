@@ -1244,6 +1244,24 @@ describe('S3 CRUD', () => {
       );
     });
 
+    it('recovers a legacy encoded storage key when refreshing its URL', async () => {
+      const { getNewS3URL } = await import('../crud');
+      await getNewS3URL(
+        'https://bucket.s3.amazonaws.com/images/user123/file__%E5%9B%BE%E7%89%87.png',
+        'images/user123/file__%E5%9B%BE%E7%89%87.png',
+      );
+
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Key: 'images/user123/file__图片.png',
+          }),
+        }),
+        expect.anything(),
+      );
+    });
+
     it('returns undefined for invalid URLs', async () => {
       const { getNewS3URL } = await import('../crud');
       const result = await getNewS3URL('simple-file.txt');
@@ -1497,12 +1515,19 @@ describe('S3 CRUD', () => {
       expect(key).toBe('folder/file.txt');
     });
 
-    it('handles URLs with encoded characters', async () => {
+    it('decodes URL-encoded object key characters', async () => {
       const { extractKeyFromS3Url } = await import('../crud');
       const key = extractKeyFromS3Url(
-        'https://bucket.s3.amazonaws.com/test-bucket/images/user123/my%20file%20name.jpg',
+        'https://bucket.s3.amazonaws.com/test-bucket/images/user123/%E5%9B%BE%E7%89%87%20%2525.jpg',
       );
-      expect(key).toBe('images/user123/my%20file%20name.jpg');
+      expect(key).toBe('images/user123/图片 %25.jpg');
+    });
+
+    it('preserves object keys containing malformed percent escapes', async () => {
+      const { extractKeyFromS3Url } = await import('../crud');
+      expect(
+        extractKeyFromS3Url('https://bucket.s3.amazonaws.com/test-bucket/images/user123/100%.jpg'),
+      ).toBe('images/user123/100%.jpg');
     });
 
     it('handles deep nested paths', async () => {
@@ -1535,6 +1560,29 @@ describe('S3 CRUD', () => {
         'https://minio.example.com/test-bucket/images/user123/file.jpg',
       );
       expect(key).toBe('images/user123/file.jpg');
+    });
+  });
+
+  describe('resolveStoredS3Key', () => {
+    it('recovers a legacy URL-encoded storage key from its filepath', async () => {
+      const { resolveStoredS3Key } = await import('../crud');
+      expect(
+        resolveStoredS3Key({
+          filepath:
+            'https://bucket.s3.amazonaws.com/images/user123/file__%E5%9B%BE%E7%89%87%20%2525.png',
+          storageKey: 'images/user123/file__%E5%9B%BE%E7%89%87%20%2525.png',
+        }),
+      ).toBe('images/user123/file__图片 %25.png');
+    });
+
+    it('keeps an authoritative storage key containing literal percent escapes', async () => {
+      const { resolveStoredS3Key } = await import('../crud');
+      expect(
+        resolveStoredS3Key({
+          filepath: 'https://bucket.s3.amazonaws.com/images/user123/file__%2520.png',
+          storageKey: 'images/user123/file__%20.png',
+        }),
+      ).toBe('images/user123/file__%20.png');
     });
   });
 

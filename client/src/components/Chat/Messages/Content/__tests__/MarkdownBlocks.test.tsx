@@ -237,4 +237,41 @@ describe('MarkdownBlocks document-level definitions', () => {
       'https://example.com/docs',
     );
   });
+
+  it.each(['/mnt/data/index.html:165', `${window.location.origin}/mnt/data/index.html:165`])(
+    'renders code-sandbox path %s as a non-clickable source location',
+    (href) => {
+      const queryClient = new QueryClient();
+      const content = `[index.html:165](${href})`;
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RecoilRoot>
+            <Markdown content={content} isLatestMessage={false} />
+          </RecoilRoot>
+        </QueryClientProvider>,
+      );
+
+      expect(screen.queryByRole('link', { name: 'index.html:165' })).not.toBeInTheDocument();
+      expect(screen.getByText('index.html:165', { selector: 'code' })).toBeInTheDocument();
+    },
+  );
+
+  it('keeps external links with a matching path clickable', () => {
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RecoilRoot>
+          <Markdown
+            content="[external](https://example.com/mnt/data/index.html)"
+            isLatestMessage={false}
+          />
+        </RecoilRoot>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole('link', { name: 'external' })).toHaveAttribute(
+      'href',
+      'https://example.com/mnt/data/index.html',
+    );
+  });
 });
