@@ -1,5 +1,5 @@
-import { render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { render, waitFor } from '@testing-library/react';
 import VerifyEmail from '~/components/Auth/VerifyEmail';
 
 const mockVerifyEmail = jest.fn();
