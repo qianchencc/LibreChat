@@ -133,6 +133,21 @@ export const a: React.ElementType = memo(function MarkdownAnchor({ href, childre
 
   const { refetch: downloadFile } = useFileDownload(user?.id ?? '', file_id, { direct: false });
   const props: { target?: string; onClick?: React.MouseEventHandler } = { target: '_blank' };
+  const isSandboxPath = (() => {
+    if (/^(?:sandbox:)?\/mnt\/data(?:\/|$)/.test(href)) {
+      return true;
+    }
+    try {
+      const url = new URL(href);
+      return url.origin === window.location.origin && /^\/mnt\/data(?:\/|$)/.test(url.pathname);
+    } catch {
+      return false;
+    }
+  })();
+
+  if (isSandboxPath) {
+    return <code>{children}</code>;
+  }
 
   if (!file_id || !filename) {
     return (

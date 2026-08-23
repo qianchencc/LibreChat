@@ -4,6 +4,9 @@
  * These tests run against a REAL S3 bucket. They are skipped when AWS_TEST_BUCKET_NAME is not set.
  *
  * Run with:
+ *   ./scripts/test-s3-local.sh
+ *
+ * Or against an existing dedicated bucket:
  *   AWS_TEST_BUCKET_NAME=my-test-bucket npx jest s3.s3_integration
  *
  * Required env vars:
@@ -16,6 +19,7 @@ import os from 'os';
 import path from 'path';
 import { Readable } from 'stream';
 import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import type { TFile } from 'librechat-data-provider';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { ServerRequest } from '~/types';
 
@@ -184,16 +188,45 @@ describe('S3 Integration Tests', () => {
       expect(signedUrl).toContain('response-content-disposition');
       expect(signedUrl).toContain('response-content-type');
     });
+
+    it('round trips a Unicode key and recovers its legacy encoded storage key', async () => {
+      const { saveBufferToS3, getS3DownloadURL } = await import('~/storage/s3/crud');
+      const content = 'Unicode S3 acceptance';
+      const fileName = `附件 100%-${Date.now()}.txt`;
+      const filepath = await saveBufferToS3({
+        userId: TEST_USER_ID,
+        buffer: Buffer.from(content),
+        fileName,
+        basePath: TEST_BASE_PATH,
+      });
+      const key = `${TEST_BASE_PATH}/${TEST_USER_ID}/${fileName}`;
+      const legacyStorageKey = key.split('/').map(encodeURIComponent).join('/');
+
+      const downloadUrl = await getS3DownloadURL({
+        req: {} as ServerRequest,
+        file: { filepath, storageKey: legacyStorageKey } as TFile,
+      });
+      const response = await fetch(downloadUrl);
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe(content);
+    });
   });
 
   describe('saveURLToS3', () => {
     it('fetches URL content and uploads to S3', async () => {
-      const { saveURLToS3WithMetadata } = await import('~/storage/s3/crud');
+      const { saveBufferToS3, saveURLToS3WithMetadata } = await import('~/storage/s3/crud');
       const fileName = `url-upload-${Date.now()}.json`;
+      const sourceUrl = await saveBufferToS3({
+        userId: TEST_USER_ID,
+        buffer: Buffer.from('{"source":"local-s3"}'),
+        fileName: `url-source-${Date.now()}.json`,
+        basePath: TEST_BASE_PATH,
+      });
 
       const savedFile = await saveURLToS3WithMetadata({
         userId: TEST_USER_ID,
-        URL: 'https://raw.githubusercontent.com/danny-avila/LibreChat/main/package.json',
+        URL: sourceUrl,
         fileName,
         basePath: TEST_BASE_PATH,
       });

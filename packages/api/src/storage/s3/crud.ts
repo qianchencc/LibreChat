@@ -282,7 +282,19 @@ export function getStorageMetadataForKey(
 export function resolveStoredS3Key(
   file: Pick<TFile, 'filepath'> & { storageKey?: string | null },
 ): string {
-  return file.storageKey || extractKeyFromS3Url(file.filepath);
+  if (!file.storageKey) {
+    return extractKeyFromS3Url(file.filepath);
+  }
+  if (!file.filepath) {
+    return file.storageKey;
+  }
+
+  const filepathKey = extractKeyFromS3Url(file.filepath);
+  try {
+    return decodeURIComponent(file.storageKey) === filepathKey ? filepathKey : file.storageKey;
+  } catch {
+    return file.storageKey;
+  }
 }
 
 async function getS3URLForKey({
@@ -637,6 +649,14 @@ export async function saveURLToS3(
   return filepath;
 }
 
+const decodeS3UrlKey = (key: string): string => {
+  try {
+    return decodeURIComponent(key);
+  } catch {
+    return key;
+  }
+};
+
 export function extractKeyFromS3Url(fileUrlOrKey: string): string {
   if (!fileUrlOrKey) {
     throw new Error('Invalid input: URL or key is empty');
@@ -666,7 +686,7 @@ export function extractKeyFromS3Url(fileUrlOrKey: string): string {
       } else {
         logger.debug(`[extractKeyFromS3Url] fileUrlOrKey: ${fileUrlOrKey}, Extracted key: ${key}`);
       }
-      return key;
+      return decodeS3UrlKey(key);
     }
 
     if (
@@ -686,7 +706,7 @@ export function extractKeyFromS3Url(fileUrlOrKey: string): string {
             `[extractKeyFromS3Url] fileUrlOrKey: ${fileUrlOrKey}, Extracted key: ${key}`,
           );
         }
-        return key;
+        return decodeS3UrlKey(key);
       }
       logger.warn(
         `[extractKeyFromS3Url] Unable to extract key from path-style URL: ${fileUrlOrKey}`,
@@ -695,7 +715,7 @@ export function extractKeyFromS3Url(fileUrlOrKey: string): string {
     }
 
     logger.debug(`[extractKeyFromS3Url] fileUrlOrKey: ${fileUrlOrKey}, Extracted key: ${pathname}`);
-    return pathname;
+    return decodeS3UrlKey(pathname);
   } catch (error) {
     if (fileUrlOrKey.startsWith('http://') || fileUrlOrKey.startsWith('https://')) {
       logger.error(
@@ -919,7 +939,7 @@ export async function getNewS3URL(
   storageKey?: string | null,
 ): Promise<string | undefined> {
   try {
-    const s3Key = storageKey || extractKeyFromS3Url(currentURL);
+    const s3Key = resolveStoredS3Key({ filepath: currentURL, storageKey });
     if (!s3Key) {
       return;
     }
@@ -972,9 +992,7 @@ export async function refreshS3FileUrls(
       if (!newURL) {
         continue;
       }
-      const storageMetadata = file.storageKey
-        ? getStorageMetadataForKey(file.storageKey)
-        : getStorageMetadataForKey(extractKeyFromS3Url(file.filepath));
+      const storageMetadata = getStorageMetadataForKey(resolveStoredS3Key(file));
       filesToUpdate.push({
         file_id: file.file_id,
         filepath: newURL,
@@ -1003,7 +1021,7 @@ export async function refreshS3Url(fileObj: S3FileRef, bufferSeconds = 3600): Pr
   }
 
   try {
-    const s3Key = fileObj.storageKey || extractKeyFromS3Url(fileObj.filepath);
+    const s3Key = resolveStoredS3Key(fileObj);
     if (!s3Key) {
       logger.warn(`Unable to extract S3 key from URL: ${fileObj.filepath}`);
       return fileObj.filepath;
