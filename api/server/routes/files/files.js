@@ -483,6 +483,12 @@ const getDirectDownloadURL = async ({
   });
 };
 
+const isBrowserRenderableType = (type) =>
+  type === 'application/pdf' ||
+  type.startsWith('image/') ||
+  type.startsWith('audio/') ||
+  type.startsWith('video/');
+
 // Security allowlist: excludes internal ids, owner/tenant identifiers, and extracted text.
 // `filepath` stays included because cached TFile records need it for previews/deletes.
 const DOWNLOAD_METADATA_FIELDS = [
@@ -538,9 +544,15 @@ router.get('/download-url/:userId/:file_id', fileAccess, async (req, res) => {
     }
 
     const filename = cleanFileName(file.filename);
+    const contentType = file.type || 'application/octet-stream';
+    const inline = req.query.inline === 'true' && isBrowserRenderableType(contentType);
     const downloadURL = checkOpenAIStorage(file.source)
       ? null
-      : await getDirectDownloadURL({ req, file, customFilename: filename });
+      : await getDirectDownloadURL({
+          req,
+          file,
+          customFilename: inline ? null : filename,
+        });
 
     if (!downloadURL) {
       logger.debug(

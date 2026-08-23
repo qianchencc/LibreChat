@@ -10,7 +10,6 @@ import {
   GetObjectCommand,
   CreateMultipartUploadCommand,
   CompleteMultipartUploadCommand,
-  HeadObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import type { TFile } from 'librechat-data-provider';
@@ -852,13 +851,10 @@ describe('S3 CRUD', () => {
         user: 'user123',
       } as TFile;
 
-      s3Mock.on(HeadObjectCommand).resolvesOnce({});
-
       const { deleteFileFromS3 } = await import('../crud');
       await deleteFileFromS3(mockReq, mockFile);
 
       expect(deleteRagFile).toHaveBeenCalledWith({ userId: 'user123', file: mockFile });
-      expect(s3Mock.commandCalls(HeadObjectCommand)).toHaveLength(1);
       expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(1);
     });
 
@@ -869,8 +865,6 @@ describe('S3 CRUD', () => {
         file_id: 'file123',
         user: 'user123',
       } as TFile;
-
-      s3Mock.on(HeadObjectCommand).resolvesOnce({});
 
       const { deleteFileFromS3 } = await import('../crud');
       await deleteFileFromS3(requesterReq, mockFile);
@@ -886,8 +880,6 @@ describe('S3 CRUD', () => {
         user: 'user123',
         tenantId: 'tenantA',
       } as TFile;
-
-      s3Mock.on(HeadObjectCommand).resolvesOnce({});
 
       const { deleteFileFromS3 } = await import('../crud');
       await deleteFileFromS3(mockReq, mockFile);
@@ -907,8 +899,6 @@ describe('S3 CRUD', () => {
         tenantId: 'tenantA',
       } as TFile;
 
-      s3Mock.on(HeadObjectCommand).resolvesOnce({});
-
       const { deleteFileFromS3 } = await import('../crud');
       await deleteFileFromS3(mockReq, mockFile);
 
@@ -917,21 +907,18 @@ describe('S3 CRUD', () => {
       );
     });
 
-    it('handles file not found gracefully and cleans up RAG', async () => {
+    it('idempotently deletes a missing file and cleans up RAG', async () => {
       const mockFile = {
         filepath: 'https://bucket.s3.amazonaws.com/images/user123/nonexistent.jpg',
         file_id: 'file123',
         user: 'user123',
       } as TFile;
 
-      s3Mock.on(HeadObjectCommand).rejects({ name: 'NotFound' });
-
       const { deleteFileFromS3 } = await import('../crud');
       await deleteFileFromS3(mockReq, mockFile);
 
-      expect(logger.warn).toHaveBeenCalled();
       expect(deleteRagFile).toHaveBeenCalledWith({ userId: 'user123', file: mockFile });
-      expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(0);
+      expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(1);
     });
 
     it('throws error if user ID does not match', async () => {
@@ -966,7 +953,6 @@ describe('S3 CRUD', () => {
         user: 'user123',
       } as TFile;
 
-      s3Mock.on(HeadObjectCommand).resolvesOnce({});
       const noSuchKeyError = Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' });
       s3Mock.on(DeleteObjectCommand).rejects(noSuchKeyError);
 

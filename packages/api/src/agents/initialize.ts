@@ -6,6 +6,7 @@ import {
   ErrorTypes,
   EModelEndpoint,
   EToolResources,
+  FileContext,
   paramEndpoints,
   isAgentsEndpoint,
   AgentCapabilities,
@@ -819,7 +820,8 @@ export async function initializeAgent(
      * them — see `getCodeGeneratedFiles` for the branched-conversation rationale.
      */
     const wantsCodeFiles = toolResourceSet.has(EToolResources.execute_code);
-    const [toolFiles, codeGeneratedFiles, userCodeFiles] = await Promise.all([
+    const artifactFilesEnabled = typeof agent.artifacts === 'string' && agent.artifacts !== '';
+    const [toolFiles, codeGeneratedFiles, userCodeFiles, artifactFiles] = await Promise.all([
       requestFileOwnerScope
         ? (db.getToolFilesByIds(fileIds, toolResourceSet, requestFileOwnerScope) as Promise<
             IMongoFile[]
@@ -839,9 +841,21 @@ export async function initializeAgent(
       threadFileIds.length > 0
         ? (db.getUserCodeFiles(threadFileIds, requestFileOwnerScope) as Promise<IMongoFile[]>)
         : ([] as IMongoFile[]),
+      artifactFilesEnabled && fileIds.length > 0 && requestFileOwnerId
+        ? (db.getFiles(
+            {
+              file_id: { $in: fileIds },
+              user: requestFileOwnerId,
+              ...(req.user?.tenantId ? { tenantId: req.user.tenantId } : {}),
+              context: { $ne: FileContext.execute_code },
+            },
+            { updatedAt: -1 },
+            { text: 0 },
+          ) as Promise<IMongoFile[]>)
+        : ([] as IMongoFile[]),
     ]);
 
-    const allToolFiles = toolFiles.concat(codeGeneratedFiles, userCodeFiles);
+    const allToolFiles = toolFiles.concat(codeGeneratedFiles, userCodeFiles, artifactFiles);
     if (requestFiles.length || allToolFiles.length) {
       const requestUsageFiles =
         requestFiles.length && requestFileOwnerId
@@ -1438,9 +1452,13 @@ export async function initializeAgent(
   }
 
   if (typeof agent.artifacts === 'string' && agent.artifacts !== '') {
+    const artifactAttachments = (primedRequestAttachments ?? []).filter(
+      (file): file is TFile => file?.file_id != null && file.context !== FileContext.execute_code,
+    );
     const artifactsPromptResult = generateArtifactsPrompt({
       endpoint: agent.provider,
       artifacts: agent.artifacts as never,
+      attachments: artifactAttachments,
     });
     appendAdditionalInstructions(agent, artifactsPromptResult);
   }

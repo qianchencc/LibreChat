@@ -7,6 +7,7 @@ import type {
 import type { SandpackStartupConfig } from '~/utils/artifacts';
 import type { ArtifactFiles } from '~/common';
 import { sharedFiles, buildSandpackOptions } from '~/utils/artifacts';
+import useResolvedArtifactFiles from '~/hooks/Artifacts/useResolvedArtifactFiles';
 
 export const ArtifactPreview = memo(function ({
   files,
@@ -25,19 +26,7 @@ export const ArtifactPreview = memo(function ({
   currentCode?: string;
   startupConfig?: SandpackStartupConfig;
 }) {
-  const artifactFiles = useMemo(() => {
-    if (Object.keys(files).length === 0) {
-      return files;
-    }
-    const code = currentCode ?? '';
-    if (!code) {
-      return files;
-    }
-    return {
-      ...files,
-      [fileKey]: { code },
-    };
-  }, [currentCode, files, fileKey]);
+  const artifactFiles = useResolvedArtifactFiles({ files, fileKey, currentCode });
 
   const options: SandpackProviderProps['options'] = useMemo(
     () => buildSandpackOptions(template, startupConfig),
