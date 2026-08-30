@@ -66,10 +66,11 @@ async function authenticate(config: FullConfig, user: User) {
     // Set localStorage before navigating to the page
     await page.context().addInitScript(() => {
       localStorage.setItem('navVisible', 'true');
+      localStorage.setItem('lang', JSON.stringify('en'));
     });
     console.log('🤖: ✔️  localStorage: set Nav as Visible', storageState);
 
-    await page.goto(baseURL, { timeout });
+    await page.goto(loginURL, { timeout });
     await register(page, user);
     try {
       await page.waitForURL(conversationURL, { timeout });
@@ -78,7 +79,7 @@ async function authenticate(config: FullConfig, user: User) {
       if (await registrationErrorIsVisible(page)) {
         console.log('🤖: 🚨  user already exists');
         await cleanupUser(user);
-        await page.goto(baseURL, { timeout });
+        await page.goto(loginURL, { timeout });
         await register(page, user);
         await page.waitForURL(conversationURL, { timeout });
       } else {
