@@ -46,6 +46,16 @@ const loadInsightsView = () =>
     Component: m.default,
   }));
 
+const loadHelpView = () =>
+  import('~/components/Help').then((m) => ({
+    Component: m.default,
+  }));
+
+const loadLandingRoute = () =>
+  import('./LandingRoute').then((m) => ({
+    Component: m.default,
+  }));
+
 const loadProjectsView = () =>
   import('~/components/Projects').then((m) => ({
     Component: m.ProjectsView,
@@ -61,6 +71,12 @@ const baseHref = baseEl?.getAttribute('href') || '/';
 
 export const router = createBrowserRouter(
   [
+    {
+      id: 'landing',
+      index: true,
+      lazy: loadLandingRoute,
+      errorElement: <RouteErrorBoundary />,
+    },
     {
       path: 'share/:shareId',
       element: <ShareRoute />,
@@ -128,16 +144,16 @@ export const router = createBrowserRouter(
           element: <Root />,
           children: [
             {
-              index: true,
-              element: <Navigate to="/c/new" replace={true} />,
-            },
-            {
               path: 'c/:conversationId?',
               element: <ChatRoute />,
             },
             {
               path: 'search',
               element: <Search />,
+            },
+            {
+              path: 'help',
+              lazy: loadHelpView,
             },
             {
               path: 'prompts',

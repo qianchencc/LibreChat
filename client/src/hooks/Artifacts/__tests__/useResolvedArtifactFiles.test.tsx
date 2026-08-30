@@ -25,6 +25,7 @@ const createWrapper = () => {
     user: { id: 'user-1' } as TAuthContext['user'],
     token: 'token',
     isAuthenticated: true,
+    isAuthReady: true,
     error: undefined,
     login: jest.fn(),
     logout: jest.fn(),

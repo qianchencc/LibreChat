@@ -1,4 +1,6 @@
 import React from 'react';
+import { matchRoutes } from 'react-router-dom';
+import type { RouteObject } from 'react-router-dom';
 
 jest.mock('~/components/Auth', () => ({
   Login: () => null,
@@ -49,12 +51,7 @@ jest.mock('../Root', () => ({
 
 import { router } from '../index';
 
-type RouteNode = {
-  path?: string;
-  children?: RouteNode[];
-};
-
-function flattenPaths(routes: RouteNode[]): string[] {
+function flattenPaths(routes: RouteObject[]): string[] {
   return routes.flatMap((route) => [
     ...(route.path ? [route.path] : []),
     ...(route.children ? flattenPaths(route.children) : []),
@@ -62,9 +59,22 @@ function flattenPaths(routes: RouteNode[]): string[] {
 }
 
 describe('skills routes', () => {
+  it('resolves the public root to the landing route', () => {
+    const routes = router.routes as RouteObject[];
+    const matches = matchRoutes(routes, '/');
+
+    expect(matches?.at(-1)?.route.id).toBe('landing');
+  });
+
   it('registers the explicit /skills/new route', () => {
-    const paths = flattenPaths((router as unknown as { routes: RouteNode[] }).routes);
+    const paths = flattenPaths(router.routes as RouteObject[]);
 
     expect(paths).toContain('skills/new');
+  });
+
+  it('registers the authenticated help route', () => {
+    const paths = flattenPaths(router.routes as RouteObject[]);
+
+    expect(paths).toContain('help');
   });
 });

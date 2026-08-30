@@ -50,6 +50,7 @@ const AuthContextProvider = ({
   const [token, setToken] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(authConfig?.test === true);
   const setQueriesEnabled = useSetRecoilState<boolean>(store.queriesEnabled);
 
   const userRoleName = user?.role ?? '';
@@ -75,6 +76,7 @@ const AuthContextProvider = ({
         setToken(token);
         setTokenHeader(token);
         setIsAuthenticated(isAuthenticated);
+        setIsAuthReady(true);
         if (isAuthenticated) {
           setQueriesEnabled(true);
         }
@@ -202,20 +204,26 @@ const AuthContextProvider = ({
           return;
         }
         console.log('Token is not present. User is not authenticated.');
+        setIsAuthReady(true);
         if (authConfig?.test === true) {
           return;
         }
-        navigate(buildLoginRedirectUrl());
+        if (authConfig?.optional !== true) {
+          navigate(buildLoginRedirectUrl());
+        }
       },
       onError: (error) => {
         if (isExternalRedirectRef.current) {
           return;
         }
         console.log('refreshToken mutation error:', error);
+        setIsAuthReady(true);
         if (authConfig?.test === true) {
           return;
         }
-        navigate(buildLoginRedirectUrl());
+        if (authConfig?.optional !== true) {
+          navigate(buildLoginRedirectUrl());
+        }
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deps are stable at mount; adding refreshToken causes infinite re-fire
@@ -229,7 +237,10 @@ const AuthContextProvider = ({
       setUser(userQuery.data);
     } else if (userQuery.isError) {
       doSetError((userQuery.error as Error).message);
-      navigate(buildLoginRedirectUrl(), { replace: true });
+      setIsAuthReady(true);
+      if (authConfig?.optional !== true) {
+        navigate(buildLoginRedirectUrl(), { replace: true });
+      }
     }
     if (error != null && error && isAuthenticated) {
       doSetError(undefined);
@@ -281,12 +292,14 @@ const AuthContextProvider = ({
         ...(isCustomRole && customRole ? { [userRoleName]: customRole } : {}),
       },
       isAuthenticated,
+      isAuthReady,
     }),
 
     [
       user,
       error,
       isAuthenticated,
+      isAuthReady,
       token,
       userRole,
       adminRole,

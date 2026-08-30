@@ -2,7 +2,7 @@ import React from 'react';
 import { RecoilRoot } from 'recoil';
 import '@testing-library/jest-dom/extend-expect';
 import { MemoryRouter } from 'react-router-dom';
-import { MessagesSquare, NotebookPen } from 'lucide-react';
+import { CircleHelp, MessagesSquare, NotebookPen } from 'lucide-react';
 import { render, fireEvent, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { MutableSnapshot } from 'recoil';
@@ -109,6 +109,8 @@ function renderPanel({
   onCollapse = jest.fn(),
   onExpand = jest.fn(),
   onNavigate,
+  onLeaveInsights,
+  initialEntry = '/',
   initialPanel = DEFAULT_PANEL,
   initializeState,
 }: {
@@ -117,6 +119,8 @@ function renderPanel({
   onCollapse?: jest.Mock;
   onExpand?: jest.Mock;
   onNavigate?: jest.Mock;
+  onLeaveInsights?: jest.Mock;
+  initialEntry?: string;
   initialPanel?: string;
   initializeState?: (snapshot: MutableSnapshot) => void;
 } = {}) {
@@ -125,7 +129,7 @@ function renderPanel({
   }
 
   const result = render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <QueryClientProvider client={createQueryClient()}>
         <RecoilRoot initializeState={initializeState}>
           <ActivePanelProvider>
@@ -135,6 +139,7 @@ function renderPanel({
               onCollapse={onCollapse}
               onExpand={onExpand}
               onNavigate={onNavigate}
+              onLeaveInsights={onLeaveInsights}
             />
           </ActivePanelProvider>
         </RecoilRoot>
@@ -200,6 +205,29 @@ describe('ExpandedPanel', () => {
 
       expect(onClick).toHaveBeenCalledTimes(1);
       expect(onNavigate).toHaveBeenCalledTimes(1);
+    });
+
+    it('marks help as the active route without also activating a panel', () => {
+      const links = [
+        ...createLinks(),
+        {
+          title: 'com_nav_help' as const,
+          icon: CircleHelp,
+          id: 'help',
+          onClick: jest.fn(),
+        },
+      ];
+
+      renderPanel({ links, expanded: false, initialEntry: '/help' });
+
+      expect(screen.getByRole('button', { name: 'com_nav_help' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(screen.getByRole('button', { name: 'com_ui_chat_history' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
     });
   });
 

@@ -5,13 +5,17 @@ import { Constants } from 'librechat-data-provider';
 import type { TStartupConfig } from 'librechat-data-provider';
 import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize } from '~/hooks';
+import { DEFAULT_APP_TITLE } from '~/utils';
 
 type FooterProps = {
   className?: string;
   startupConfig?: FooterStartupConfig | null;
 };
 
-type FooterStartupConfig = Pick<Partial<TStartupConfig>, 'analyticsGtmId' | 'customFooter'> & {
+type FooterStartupConfig = Pick<
+  Partial<TStartupConfig>,
+  'analyticsGtmId' | 'appTitle' | 'customFooter'
+> & {
   interface?: Pick<NonNullable<TStartupConfig['interface']>, 'privacyPolicy' | 'termsOfService'>;
 };
 
@@ -23,6 +27,7 @@ function Footer({ className, startupConfig }: FooterProps) {
 
   const privacyPolicy = config?.interface?.privacyPolicy;
   const termsOfService = config?.interface?.termsOfService;
+  const appTitle = config?.appTitle || DEFAULT_APP_TITLE;
 
   const privacyPolicyRender = privacyPolicy?.externalUrl != null && (
     <a className="text-text-secondary underline" href={privacyPolicy.externalUrl} rel="noreferrer">
@@ -39,9 +44,9 @@ function Footer({ className, startupConfig }: FooterProps) {
   const mainContentParts = (
     typeof config?.customFooter === 'string'
       ? config.customFooter
-      : '[LibreChat ' +
+      : `[${appTitle} ` +
         Constants.VERSION +
-        '](https://librechat.ai) - ' +
+        '](https://libre.qianc.ltd) - ' +
         localize('com_ui_latest_footer')
   ).split('|');
 

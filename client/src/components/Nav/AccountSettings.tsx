@@ -12,6 +12,7 @@ import {
   Scale,
   ShieldCheck,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ArchivedChatsModal } from '~/components/Nav/SettingsTabs/General/ArchivedChatsModal';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import { useAuthContext } from '~/hooks/AuthContext';
@@ -19,22 +20,20 @@ import { useLocalize } from '~/hooks';
 import Settings from './Settings';
 import store from '~/store';
 
-function HelpSubmenu({
-  helpAndFaqURL,
+export function HelpSubmenu({
   termsOfServiceURL,
   privacyPolicyURL,
   onShowShortcuts,
 }: {
-  helpAndFaqURL?: string;
   termsOfServiceURL?: string;
   privacyPolicyURL?: string;
   onShowShortcuts: () => void;
 }) {
   const localize = useLocalize();
-  const hasHelpFaq = !!helpAndFaqURL && helpAndFaqURL !== '/';
+  const navigate = useNavigate();
   const hasTos = !!termsOfServiceURL;
   const hasPrivacy = !!privacyPolicyURL;
-  const showLegalDivider = (hasHelpFaq || true) && (hasTos || hasPrivacy);
+  const showLegalDivider = hasTos || hasPrivacy;
 
   return (
     <Menu.MenuProvider placement="right-start">
@@ -53,15 +52,10 @@ function HelpSubmenu({
         gutter={12}
         className="account-settings-popover popover-ui popover-from-left z-[126] w-[244px] rounded-lg"
       >
-        {hasHelpFaq && (
-          <Menu.MenuItem
-            onClick={() => window.open(helpAndFaqURL, '_blank', 'noopener,noreferrer')}
-            className="select-item text-sm"
-          >
-            <LifeBuoy className="icon-md" aria-hidden="true" />
-            {localize('com_nav_help_faq')}
-          </Menu.MenuItem>
-        )}
+        <Menu.MenuItem onClick={() => navigate('/help')} className="select-item text-sm">
+          <LifeBuoy className="icon-md" aria-hidden="true" />
+          {localize('com_nav_help_faq')}
+        </Menu.MenuItem>
         <Menu.MenuItem onClick={onShowShortcuts} className="select-item text-sm">
           <Keyboard className="icon-md" aria-hidden="true" />
           {localize('com_shortcut_keyboard_shortcuts')}
@@ -152,7 +146,6 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
           </>
         )}
         <HelpSubmenu
-          helpAndFaqURL={startupConfig?.helpAndFaqURL}
           termsOfServiceURL={startupConfig?.interface?.termsOfService?.externalUrl}
           privacyPolicyURL={startupConfig?.interface?.privacyPolicy?.externalUrl}
           onShowShortcuts={() => setShowShortcutsDialog(true)}

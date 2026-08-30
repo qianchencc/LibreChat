@@ -267,6 +267,16 @@ describe('GET /api/config', () => {
       expect(response.body).toHaveProperty('serverDomain');
     });
 
+    it('should use the deployment brand when APP_TITLE is unset', async () => {
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      delete process.env.APP_TITLE;
+      const app = createApp(null);
+
+      const response = await request(app).get('/api/config');
+
+      expect(response.body.appTitle).toBe('尘Chat');
+    });
+
     it('should omit CloudFront cookie refresh from unauthenticated response (#12688)', async () => {
       mockGetAppConfig.mockResolvedValue(baseAppConfig);
       mockGetCloudFrontConfig.mockReturnValue({

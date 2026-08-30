@@ -1,0 +1,8 @@
+/* Tailwind has no reduced-transparency variant; keep this fallback local to the floating nav. */
+@media (prefers-reduced-transparency: reduce) {
+  .landing-nav {
+    background-color: rgb(var(--surface-primary));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
