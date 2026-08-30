@@ -23,7 +23,8 @@
 - No horizontal overflow was introduced.
 - Scrolling to story 3 set stories 1 and 2 receded overlays to full opacity.
 
-## Dependency
+## Release dependency
 
-The email-template work must commit `client/public/assets/email/auth-hero.jpg` before this change is
-deployed. This handoff intentionally does not stage or take ownership of that directory.
+The release includes `client/public/assets/email/auth-hero.jpg` as the single shared asset required
+by Landing. The remaining email-template files stay outside this change and retain their existing
+worktree ownership.
