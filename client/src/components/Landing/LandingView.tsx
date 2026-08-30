@@ -24,7 +24,7 @@ function useLandingSmoothScroll(reduceMotion: boolean | null) {
     const lenis = new Lenis({
       anchors: true,
       autoRaf: false,
-      lerp: 0.075,
+      lerp: 0.2,
       smoothWheel: true,
       syncTouch: false,
     });
@@ -350,7 +350,6 @@ function StoryPanel({
           suspendPlayback={suspendPlayback}
           restartOnActivate={true}
           onRequestActivate={onActivate}
-          preload="metadata"
           label={localize('com_landing_video_label', { 0: localize(story.title) })}
         />
       </div>

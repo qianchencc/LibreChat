@@ -137,6 +137,7 @@ describe('LandingView', () => {
     expect(heroImage).toHaveAttribute('height', '1604');
     expect(videos).toHaveLength(4);
     expect(videos.every((video) => video.getAttribute('poster')?.endsWith('.webp'))).toBe(true);
+    expect(videos.every((video) => video.preload === 'none')).toBe(true);
     expect(videos.every((video) => video.playbackRate === 1)).toBe(true);
     expect(sources).toEqual([
       '/assets/landing/temporary-api-key.mp4',

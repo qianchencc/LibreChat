@@ -9,6 +9,9 @@
   placing `ThemeSelector` in the Landing navigation because its default layout is absolute.
 - Product recordings must include a poster and a user-visible play/pause control. Reduced-motion
   visitors must not receive autoplay.
+- Keep story recordings at `preload="none"`. Public media Range requests have much higher latency
+  than LAN requests, so metadata preloading all stories can contend with scrolling before a story
+  is active.
 - Keep the Hero product image static. It must not add another autoplay owner above the story stack.
 - Keep exactly one Landing story active. The shared activation observer owns playback handoff;
   individual story videos must not add their own visibility observers.
@@ -16,6 +19,8 @@
   Do not trim or accelerate separate Landing clips.
 - Lenis is scoped to the Landing route and shares Framer Motion's frame loop. Destroy it on unmount
   and do not enable it for visitors who request reduced motion.
+- Keep Lenis wheel response below the measured interaction budget. A `lerp` of `0.075` took about
+  1.5 seconds to settle after one wheel input and felt stalled despite stable frame pacing.
 - Suspend story video playback while Lenis is scrolling, then resume from the same timestamp after
   it settles. Concurrent video decoding can halve smooth-scroll frame rate on constrained devices.
 - Sticky story panels are desktop-only. Preserve normal document flow below the `md` breakpoint.
