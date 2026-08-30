@@ -2,11 +2,13 @@
 
 ## Objective
 
-Replace the bundled LibreChat visual defaults with one native, versioned 尘Chat theme while
-preserving light/dark switching, deployment color overrides, stored appearance mode, semantic
-Tailwind roles, and accessibility.
+Replace the bundled LibreChat visual defaults with the native 尘Chat palette while preserving
+light/dark switching, deployment color overrides, stored appearance mode, semantic Tailwind roles,
+and accessibility.
 
-This is a theme-definition change, not a compatibility layer for `codex-theme-v1`.
+尘Chat is the default product identity of this fork, so this changes the bundled light/dark
+defaults instead of injecting a controlled deployment theme from `App.jsx`. It is not a
+compatibility layer for `codex-theme-v1`.
 
 ## Frozen Inputs
 
@@ -25,12 +27,11 @@ derivatives.
 
 ## Scope
 
-1. Add a version-1 native theme definition with complete light and dark semantic color maps.
-2. Use the existing `appearance.fontFamily` field for the UI serif stack.
+1. Replace the bundled default light and dark semantic color maps.
+2. Change the existing default `appearance.fontFamily` value to the UI serif stack.
 3. Make the client `font-sans` family consume the canonical theme font variable so inherited UI
    and existing explicit `font-sans` usages switch together.
-4. Install the 尘Chat definition as the default application theme when no
-   `REACT_APP_THEME_*` deployment override is present.
+4. Keep `App.jsx` and the existing `REACT_APP_THEME_*` adapter unchanged.
 5. Keep the current light/dark/system selector and local-storage behavior.
 6. Validate semantic contrast and visually accept the main public, auth, chat, settings, Help,
    and Artifact surfaces in both modes.
@@ -46,6 +47,19 @@ derivatives.
   Chinese typography can become a separate self-hosted-font slice after visual acceptance.
 - Do not replace protocol names, package names, storage keys, or other LibreChat compatibility
   identifiers.
+- Do not import the unmerged upstream high-contrast appearance branch. It is a separate
+  accessibility mode and can coexist with these defaults if it lands later.
+
+## Upstream Decision
+
+`upstream/main` contains `f9c051f8e` (`Support Non-Persistent Controlled Themes`). That change is
+valuable when an application injects a controlled `themeDefinition`, but this implementation does
+not do that. Updating the bundled defaults avoids the storage problem entirely, so this batch does
+not port or cherry-pick the upstream commit.
+
+The unmerged `upstream/berry-13/accesibility-theme` branch demonstrates useful contrast tests, but
+also adds new appearance modes and a much larger UI surface. Reuse its test principles only; do
+not couple the 尘Chat brand theme to that branch.
 
 ## Native Mapping
 
@@ -62,13 +76,14 @@ derivatives.
 
 ## Expected Code Boundary
 
-- `packages/client/src/theme/themes/`: add the 尘Chat light/dark theme data.
-- `packages/client/src/theme/registry.ts`: expose it as the application-ready definition without
-  changing schema version unless the existing interface proves insufficient.
-- `client/src/App.jsx`: choose deployment color overrides first, otherwise the 尘Chat definition.
+- `packages/client/src/theme/themes/default.ts`: replace the bundled light semantic values.
+- `packages/client/src/theme/themes/dark.ts`: replace the bundled dark semantic values.
+- `packages/client/src/theme/registry.ts`: change only the default UI font stack; do not change the
+  schema or provider behavior.
+- `client/src/style.css`: keep the no-JavaScript CSS fallbacks aligned with the same values.
 - `client/tailwind.config.cjs`: route `font-sans` through `--theme-font-family`.
-- Theme registry/provider and semantic-token tests: prove mode resolution, override precedence,
-  reset behavior, and contrast.
+- Existing theme and semantic-token tests: prove default alignment and contrast. ThemeProvider
+  behavior does not need a new abstraction or controlled-theme path.
 
 The implementation should not require feature-owned color changes. A component that still looks
 wrong should first be checked for a raw color or the wrong semantic role; unrelated component
@@ -80,8 +95,7 @@ redesign is outside this slice.
    serif stack.
 2. Switching to dark renders the dark inputs above, persists across reload, and introduces no
    unreadable or unchanged light surfaces.
-3. `REACT_APP_THEME_*` continues to override deployment colors without disabling appearance-mode
-   switching.
+3. Existing `REACT_APP_THEME_*` behavior is unchanged and continues to override bundled colors.
 4. Login, Landing, Help, chat, composer, menus, dialogs, settings, code blocks, and Artifact tabs
    have no missing text, invisible focus rings, raw LibreChat purple accents, or horizontal layout
    regressions at 1440x900 and 390x844.
@@ -92,9 +106,9 @@ redesign is outside this slice.
 
 ## Delivery Order
 
-1. Add failing theme-resolution and contrast assertions for deliberately different light/dark
+1. Add failing default-alignment and contrast assertions for deliberately different light/dark
    values.
-2. Add the native theme data and application wiring until those assertions pass.
+2. Replace the bundled semantic defaults until those assertions pass.
 3. Route the UI sans family through the existing theme font variable and verify inherited and
    explicit `font-sans` content.
 4. Run browser acceptance in light and dark; correct only semantic-token or shared-font gaps found
