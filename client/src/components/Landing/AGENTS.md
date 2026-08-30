@@ -20,3 +20,5 @@
 - Workflow artwork is decorative and must stay below the opaque video/text layers. Keep the
   receded-card pseudo-element above all card content so playback handoff still fully hides earlier
   cards.
+- Use only the control-level radius on the Hero product screenshot. The large surface radius clips
+  product controls near its corners, and a separate decorative frame adds unnecessary bulk.

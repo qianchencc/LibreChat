@@ -521,9 +521,11 @@ export default function LandingView() {
               className="mt-8 w-full max-w-5xl"
             >
               <img
-                src="/assets/landing/hero-chat.png"
+                src="/assets/landing/hero-workspace.png"
                 alt={`${appTitle}: ${localize('com_landing_capability_chat_title')}`}
-                className="mx-auto max-h-[40dvh] w-auto max-w-full rounded-theme-surface-lg object-contain shadow-theme-surface"
+                width={2560}
+                height={1604}
+                className="mx-auto block max-h-[40dvh] w-auto max-w-full rounded-theme-control object-contain shadow-theme-surface"
               />
             </motion.div>
           </div>

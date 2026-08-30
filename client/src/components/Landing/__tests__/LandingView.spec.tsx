@@ -115,10 +115,10 @@ describe('LandingView', () => {
     const videos = Array.from(container.querySelectorAll('video'));
     const sources = videos.map((video) => video.querySelector('source')?.getAttribute('src'));
 
-    expect(screen.getByRole('img', { name: '尘Chat: Talk directly' })).toHaveAttribute(
-      'src',
-      '/assets/landing/hero-chat.png',
-    );
+    const heroImage = screen.getByRole('img', { name: '尘Chat: Talk directly' });
+    expect(heroImage).toHaveAttribute('src', '/assets/landing/hero-workspace.png');
+    expect(heroImage).toHaveAttribute('width', '2560');
+    expect(heroImage).toHaveAttribute('height', '1604');
     expect(videos).toHaveLength(4);
     expect(videos.every((video) => video.getAttribute('poster')?.endsWith('.webp'))).toBe(true);
     expect(videos.every((video) => video.playbackRate === 1)).toBe(true);
