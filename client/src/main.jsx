@@ -1,5 +1,6 @@
 import './polyfills/regeneratorRuntime';
 import { createRoot } from 'react-dom/client';
+import '@fontsource-variable/noto-serif-sc/wght.css';
 import { initializeI18n } from './locales/i18n';
 import App from './App';
 import '@librechat/client/style.css';

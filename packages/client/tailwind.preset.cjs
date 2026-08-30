@@ -4,7 +4,7 @@ module.exports = {
     extend: {
       fontFamily: {
         'theme-ui': [
-          'var(--theme-font-family, ui-serif, Georgia, Cambria, "Times New Roman", Times, "Noto Serif SC", serif)',
+          'var(--theme-font-family, "Noto Serif SC Variable", "Songti SC", STSong, SimSun, ui-serif, Georgia, Cambria, "Times New Roman", Times, serif)',
         ],
       },
       height: {
