@@ -19,3 +19,9 @@
 - Browser acceptance covers 1440x900 and 390x844 in light and dark themes.
 - The screenshot loads at 2560x1604, retains its corner controls, and introduces no horizontal
   overflow.
+
+## Production packaging
+
+The production image runs `npm prune --production` after the frontend build. That prune removed
+public assets previously copied into `client/dist`, causing Landing images and recordings to return 404. The Dockerfile now restores all `client/public/assets` and `robots.txt` after prune so runtime
+static files match the committed frontend build.
