@@ -1,6 +1,6 @@
 # Landing
 
-- Keep `/` usable without an authenticated session; authenticated users redirect to `/c/new`.
+- Keep `/` usable as the public product page for both anonymous and authenticated visitors.
 - Render the startup-config `appTitle` as the brand and fall back to `DEFAULT_APP_TITLE`.
 - Keep the Gateway link in both desktop and mobile navigation. It opens
   `https://proxy.qianc.ltd` in a new tab.

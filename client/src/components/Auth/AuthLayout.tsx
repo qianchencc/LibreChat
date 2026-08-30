@@ -1,7 +1,7 @@
 import { ThemeSelector } from '@librechat/client';
 import { TStartupConfig } from 'librechat-data-provider';
-import brandLogo from '~/assets/logo.svg';
 import { ErrorMessage } from '~/components/Auth/ErrorMessage';
+import { BrandWordmark } from '~/components/ui';
 import { TranslationKeys, useLocalize } from '~/hooks';
 import SocialLoginRender from './SocialLoginRender';
 import { BlinkAnimation } from './BlinkAnimation';
@@ -65,11 +65,13 @@ function AuthLayout({
     <div className="relative flex min-h-screen flex-col bg-surface-primary">
       <Banner />
       <BlinkAnimation active={isFetching}>
-        <div className="mt-6 h-10 w-full bg-cover">
-          <img
-            src={brandLogo}
-            className="h-full w-full object-contain"
-            alt={localize('com_ui_logo', { 0: startupConfig?.appTitle || DEFAULT_APP_TITLE })}
+        <div className="mt-6 flex h-10 w-full justify-center">
+          <BrandWordmark
+            appTitle={startupConfig?.appTitle || DEFAULT_APP_TITLE}
+            label={localize('com_ui_logo', {
+              0: startupConfig?.appTitle || DEFAULT_APP_TITLE,
+            })}
+            className="h-full text-xl font-semibold text-text-primary"
           />
         </div>
       </BlinkAnimation>

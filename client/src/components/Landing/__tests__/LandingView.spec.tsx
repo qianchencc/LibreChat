@@ -94,6 +94,15 @@ describe('LandingView', () => {
     );
     expect(screen.getAllByRole('link', { name: 'Gateway' })[0]).toHaveAttribute('target', '_blank');
     expect(screen.getByText('From one task to a result you can use')).toBeInTheDocument();
+
+    const wordmarks = screen.getAllByRole('img', { name: '尘Chat' });
+    expect(wordmarks).toHaveLength(3);
+    wordmarks.forEach((wordmark) => {
+      const images = wordmark.querySelectorAll('img');
+      expect(images).toHaveLength(2);
+      expect(images[0]).toHaveClass('dark:hidden');
+      expect(images[1]).toHaveClass('hidden', 'dark:block');
+    });
   });
 
   it('uses a static hero and all four original recordings at natural speed', () => {

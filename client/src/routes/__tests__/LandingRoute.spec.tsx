@@ -28,7 +28,7 @@ describe('LandingGate', () => {
     expect(screen.getByText('Public landing')).toBeInTheDocument();
   });
 
-  it('sends an authenticated visitor to a new conversation', () => {
+  it('keeps the landing visible for an authenticated visitor', () => {
     mockAuthState = { isAuthenticated: true, isAuthReady: true };
 
     render(
@@ -40,6 +40,7 @@ describe('LandingGate', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('New conversation')).toBeInTheDocument();
+    expect(screen.getByText('Public landing')).toBeInTheDocument();
+    expect(screen.queryByText('New conversation')).not.toBeInTheDocument();
   });
 });

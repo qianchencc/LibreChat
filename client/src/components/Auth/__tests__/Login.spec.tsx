@@ -10,8 +10,6 @@ import AuthLayout from '~/components/Auth/AuthLayout';
 import Login from '~/components/Auth/Login';
 
 jest.mock('librechat-data-provider/react-query');
-jest.mock('~/assets/logo.svg', () => '/assets/logo.svg');
-
 const mockStartupConfig = {
   isFetching: false,
   isLoading: false,
@@ -124,7 +122,11 @@ jest.mock('react-router-dom', () => ({
 
 test('renders login form', () => {
   const { getByLabelText, getByRole } = setup();
-  expect(getByRole('img', { name: '尘Chat Logo' })).toHaveAttribute('src', '/assets/logo.svg');
+  const wordmark = getByRole('img', { name: '尘Chat Logo' });
+  const wordmarkImages = wordmark.querySelectorAll('img');
+  expect(wordmarkImages).toHaveLength(2);
+  expect(wordmarkImages[0]).toHaveClass('dark:hidden');
+  expect(wordmarkImages[1]).toHaveClass('hidden', 'dark:block');
   expect(getByLabelText(/email/i)).toBeInTheDocument();
   expect(getByLabelText(/password/i)).toBeInTheDocument();
   expect(getByTestId(document.body, 'login-button')).toBeInTheDocument();

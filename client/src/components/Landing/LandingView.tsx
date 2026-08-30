@@ -6,6 +6,7 @@ import { cancelFrame, frame, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Menu, Pause, Play, X } from 'lucide-react';
 import type { LandingStory } from '~/components/Help/content';
 import { landingCapabilities, landingStories } from '~/components/Help/content';
+import { BrandWordmark } from '~/components/ui';
 import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { cn, DEFAULT_APP_TITLE } from '~/utils';
@@ -21,7 +22,7 @@ function useLandingSmoothScroll(reduceMotion: boolean | null) {
     const lenis = new Lenis({
       anchors: true,
       autoRaf: false,
-      lerp: 0.1,
+      lerp: 0.075,
       smoothWheel: true,
       syncTouch: false,
     });
@@ -183,8 +184,11 @@ function LandingHeader({ appTitle }: { appTitle: string }) {
         aria-label={localize('com_landing_menu_open')}
         className="mx-auto flex h-16 max-w-[1280px] items-center gap-3 px-4 sm:px-6 lg:px-8"
       >
-        <a href="#top" className="min-w-0 truncate text-base font-semibold text-text-primary">
-          {appTitle}
+        <a href="#top" className="min-w-0 truncate">
+          <BrandWordmark
+            appTitle={appTitle}
+            className="h-8 text-base font-semibold text-text-primary"
+          />
         </a>
 
         <div className="ml-auto hidden items-center gap-1 md:flex">
@@ -460,7 +464,10 @@ export default function LandingView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="text-lg font-semibold text-text-primary md:text-xl">{appTitle}</div>
+              <BrandWordmark
+                appTitle={appTitle}
+                className="h-10 text-lg font-semibold text-text-primary md:text-xl"
+              />
               <h1 className="mx-auto mt-4 max-w-5xl text-4xl font-semibold leading-[1.08] text-text-primary md:text-5xl">
                 {localize('com_landing_tagline')}
               </h1>
@@ -535,7 +542,7 @@ export default function LandingView() {
       <footer className="border-t border-border-light bg-surface-primary-alt px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-[1280px] flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="font-semibold text-text-primary">{appTitle}</div>
+            <BrandWordmark appTitle={appTitle} className="h-7 font-semibold text-text-primary" />
             <p className="mt-2 text-sm text-text-secondary">
               {localize('com_landing_footer_description')}
             </p>
