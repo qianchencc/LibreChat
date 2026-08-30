@@ -17,3 +17,6 @@
 - Lenis is scoped to the Landing route and shares Framer Motion's frame loop. Destroy it on unmount
   and do not enable it for visitors who request reduced motion.
 - Sticky story panels are desktop-only. Preserve normal document flow below the `md` breakpoint.
+- Workflow artwork is decorative and must stay below the opaque video/text layers. Keep the
+  receded-card pseudo-element above all card content so playback handoff still fully hides earlier
+  cards.

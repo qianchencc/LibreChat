@@ -131,6 +131,24 @@ describe('LandingView', () => {
     expect(screen.getAllByRole('button', { name: 'Play demonstration' })).toHaveLength(4);
   });
 
+  it('decorates each workflow card with the branded hero artwork', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <LandingView />
+      </MemoryRouter>,
+    );
+
+    const storyBackgrounds = container.querySelectorAll(
+      'article[data-story-index] > img[src="/assets/email/auth-hero.jpg"]',
+    );
+
+    expect(storyBackgrounds).toHaveLength(4);
+    storyBackgrounds.forEach((background) => {
+      expect(background).toHaveAttribute('alt', '');
+      expect(background).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
   it('hands playback to the latest story entering the activation band', async () => {
     const play = jest
       .spyOn(HTMLMediaElement.prototype, 'play')

@@ -297,6 +297,12 @@ function StoryPanel({
 }) {
   const localize = useLocalize();
   const textFirst = story.layout === 'text-first';
+  const backgroundPosition = [
+    'object-left-top',
+    'object-center-top',
+    'object-right-top',
+    'object-center',
+  ][index];
 
   return (
     <article
@@ -309,7 +315,17 @@ function StoryPanel({
         receded && 'md:after:opacity-100',
       )}
     >
-      <div className={cn('flex min-w-0 items-center', textFirst && 'md:order-2')}>
+      <img
+        src="/assets/email/auth-hero.jpg"
+        alt=""
+        aria-hidden="true"
+        className={cn(
+          'pointer-events-none absolute inset-0 z-0 size-full scale-110 object-cover opacity-[0.16] blur-[16px] md:opacity-25',
+          backgroundPosition,
+        )}
+      />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-surface-secondary/55" />
+      <div className={cn('relative z-10 flex min-w-0 items-center', textFirst && 'md:order-2')}>
         <ProductVideo
           {...story.media}
           active={active}
@@ -321,7 +337,7 @@ function StoryPanel({
       </div>
       <div
         className={cn(
-          'flex flex-col justify-center px-2 py-7 sm:px-6 md:px-10 md:py-10',
+          'relative z-10 flex flex-col justify-center px-2 py-7 sm:px-6 md:px-10 md:py-10',
           textFirst && 'md:order-1',
         )}
       >
