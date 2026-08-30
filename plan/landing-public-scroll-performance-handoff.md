@@ -25,3 +25,15 @@ The public Landing page felt much slower than the same production container acce
   above 32ms.
 - A cold Landing load makes no MP4 requests. Activating the first story requests only its video.
 - The focused Landing suite covers the no-preload contract and existing playback handoff behavior.
+
+## Firefox follow-up
+
+A macOS Zen/Firefox recording still averaged about 45fps and contained stalls up to 367ms during
+rapid direction changes across the sticky workflow stack. Replaying that gesture in Firefox 153
+reproduced a 34.1ms p95 with 48 input frames above 32ms. Hiding video did not help; removing the
+full-card artwork layer did.
+
+Keeping the artwork while removing its `scale(1.1)` transform and `blur(16px)` filter preserved the
+visual treatment and reduced the same Firefox probe to a 17.1ms p95, with no frames above 50ms.
+This browser-compositing behavior has no stable unit-test seam, so the Firefox reversal probe is the
+acceptance check.

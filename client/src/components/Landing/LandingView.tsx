@@ -338,7 +338,7 @@ function StoryPanel({
         alt=""
         aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute inset-0 z-0 size-full scale-110 object-cover opacity-[0.16] blur-[16px] md:opacity-25',
+          'pointer-events-none absolute inset-0 z-0 size-full object-cover opacity-[0.16] md:opacity-25',
           backgroundPosition,
         )}
       />

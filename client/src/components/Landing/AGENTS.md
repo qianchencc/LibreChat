@@ -27,5 +27,8 @@
 - Workflow artwork is decorative and must stay below the opaque video/text layers. Keep the
   receded-card pseudo-element above all card content so playback handoff still fully hides earlier
   cards.
+- Keep workflow artwork flat inside sticky cards. Scaling or filtering the full-card image layer
+  causes sustained Firefox repaint stalls during rapid direction changes; use the source artwork's
+  existing softness and the semantic surface overlay instead.
 - Use only the control-level radius on the Hero product screenshot. The large surface radius clips
   product controls near its corners, and a separate decorative frame adds unnecessary bulk.
