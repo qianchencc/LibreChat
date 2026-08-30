@@ -3,7 +3,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'theme-ui': ['var(--theme-font-family, Inter, sans-serif)'],
+        'theme-ui': [
+          'var(--theme-font-family, ui-serif, Georgia, Cambria, "Times New Roman", Times, "Noto Serif SC", serif)',
+        ],
       },
       height: {
         'theme-control': 'var(--theme-control-height, 2.25rem)',

@@ -15,6 +15,8 @@ but they may not expand into component redesign.
 
 ## T1: Replace Semantic Defaults
 
+**Status:** Complete
+
 **Blocks:** T2, T3
 
 **Outcome:** Every bundled light/dark semantic role resolves to a deliberate 尘Chat value and the
@@ -58,6 +60,8 @@ npx jest src/theme/registry.spec.ts src/theme/semanticTokens.spec.ts --runInBand
 
 ## T2: Apply the Existing UI Font Role Globally
 
+**Status:** Complete
+
 **Blocked by:** T1
 
 **Blocks:** T3
@@ -97,6 +101,8 @@ npm run typecheck
 ```
 
 ## T3: Browser Acceptance And Release Candidate
+
+**Status:** Complete
 
 **Blocked by:** T1, T2
 

@@ -52,61 +52,59 @@ describe('shared component color guardrail', () => {
 });
 
 describe('dark dialog surface', () => {
-  it('matches the legacy rendered background in CSS and the runtime theme', () => {
+  it('matches the bundled ChenChat background in CSS and the runtime theme', () => {
     const appStyles = readFileSync(
       join(__dirname, '..', '..', '..', '..', 'client', 'src', 'style.css'),
       'utf8',
     );
 
-    expect(appStyles).toMatch(/--gray-875:\s*18 18 18;/);
-    expect(appStyles).toMatch(/--surface-dialog:\s*var\(--gray-875\);/);
-    expect(darkTheme['rgb-surface-dialog']).toBe('18 18 18');
+    expect(appStyles).toMatch(/--surface-dialog:\s*52 52 49;/);
+    expect(darkTheme['rgb-surface-dialog']).toBe('52 52 49');
   });
 });
 
 describe('dark hover surface', () => {
-  it('uses the gray-650 midpoint in both CSS and the runtime theme', () => {
+  it('uses the raised ChenChat surface in both CSS and the runtime theme', () => {
     const appStyles = readFileSync(
       join(__dirname, '..', '..', '..', '..', 'client', 'src', 'style.css'),
       'utf8',
     );
 
-    expect(appStyles).toMatch(/--gray-650:\s*57 57 57;/);
-    expect(appStyles).toMatch(/--surface-hover:\s*var\(--gray-650\);/);
-    expect(darkTheme['rgb-surface-hover']).toBe('57 57 57');
+    expect(appStyles).toMatch(/--surface-hover:\s*70 69 65;/);
+    expect(darkTheme['rgb-surface-hover']).toBe('70 69 65');
   });
 });
 
 describe('composer hover surface', () => {
-  it('keeps light hover unchanged and uses the lighter dark hover surface', () => {
+  it('uses the mode-specific raised surface', () => {
     const appStyles = readFileSync(
       join(__dirname, '..', '..', '..', '..', 'client', 'src', 'style.css'),
       'utf8',
     );
 
-    expect(appStyles).toMatch(/--surface-composer-hover:\s*var\(--gray-200\);/);
-    expect(appStyles).toMatch(/--surface-composer-hover:\s*var\(--gray-600\);/);
-    expect(defaultTheme['rgb-surface-composer-hover']).toBe('227 227 227');
-    expect(darkTheme['rgb-surface-composer-hover']).toBe('66 66 66');
+    expect(appStyles).toMatch(/--surface-composer-hover:\s*229 225 215;/);
+    expect(appStyles).toMatch(/--surface-composer-hover:\s*70 69 65;/);
+    expect(defaultTheme['rgb-surface-composer-hover']).toBe('229 225 215');
+    expect(darkTheme['rgb-surface-composer-hover']).toBe('70 69 65');
   });
 });
 
 describe('dark destructive text', () => {
-  it('uses red-400 without changing the status error token', () => {
+  it('keeps destructive text and status error readable on their intended surfaces', () => {
     const appStyles = readFileSync(
       join(__dirname, '..', '..', '..', '..', 'client', 'src', 'style.css'),
       'utf8',
     );
 
-    expect(appStyles).toMatch(/--text-destructive:\s*var\(--red-400\);/);
-    expect(darkTheme['rgb-text-destructive']).toBe('248 113 113');
-    expect(darkTheme['rgb-status-error']).toBe('252 165 165');
+    expect(appStyles).toMatch(/--text-destructive:\s*255 136 105;/);
+    expect(darkTheme['rgb-text-destructive']).toBe('255 136 105');
+    expect(darkTheme['rgb-status-error']).toBe('255 126 94');
   });
 });
 
 describe('light brand text', () => {
-  it('uses the contrasting purple foreground in the default theme', () => {
-    expect(defaultTheme['rgb-brand-purple']).toBe('126 34 206');
+  it('uses the contrasting accent derivative in the default theme', () => {
+    expect(defaultTheme['rgb-brand-purple']).toBe('148 62 38');
   });
 });
 
@@ -179,8 +177,41 @@ const statusTextTokens: Array<keyof IThemeRGB> = ['rgb-text-warning', 'rgb-text-
 
 /** How Alert/Badge/Tag/Chip paint every status variant: `text-status-x` on `bg-status-x-subtle`. */
 const statusHues = ['success', 'info', 'warning', 'error', 'neutral'] as const;
+const strongStatusSurfaces: Array<keyof IThemeRGB> = [
+  'rgb-surface-submit',
+  'rgb-surface-destructive',
+  'rgb-status-success-strong',
+  'rgb-status-info-strong',
+  'rgb-status-warning-strong',
+  'rgb-status-error-strong',
+];
 
 const WCAG_AA_NORMAL = 4.5;
+
+describe('ChenChat bundled identity', () => {
+  it('publishes the approved light and dark anchors through runtime and CSS defaults', () => {
+    const appStyles = readFileSync(
+      join(__dirname, '..', '..', '..', '..', 'client', 'src', 'style.css'),
+      'utf8',
+    );
+    const anchors: Array<[keyof IThemeRGB, string, string]> = [
+      ['rgb-surface-primary', '245 244 238', '45 45 43'],
+      ['rgb-text-primary', '20 20 19', '249 249 247'],
+      ['rgb-surface-submit', '218 119 86', '204 125 94'],
+    ];
+
+    anchors.forEach(([token, light, dark]) => {
+      expect(defaultTheme[token]).toBe(light);
+      expect(darkTheme[token]).toBe(dark);
+
+      const property = token.slice(4);
+      const declared = [...appStyles.matchAll(new RegExp(`--${property}:\\s*([^;]+);`, 'g'))].map(
+        (match) => match[1].trim(),
+      );
+      expect(declared.slice(0, 2)).toEqual([light, dark]);
+    });
+  });
+});
 
 function toRgb(theme: IThemeRGB, token: keyof IThemeRGB): Rgb {
   const parts = theme[token]?.trim().split(/\s+/).map(Number);
@@ -231,6 +262,23 @@ describe.each([
     expect(belowAA(theme, statusTextTokens, canvasSurfaces)).toEqual([]);
   });
 
+  it('keeps links and text accents at WCAG AA on canvas surfaces', () => {
+    expect(
+      belowAA(
+        theme,
+        [
+          'rgb-link',
+          'rgb-link-hover',
+          'rgb-link-visited',
+          'rgb-accent-primary',
+          'rgb-accent-primary-hover',
+          'rgb-brand-purple',
+        ],
+        canvasSurfaces,
+      ),
+    ).toEqual([]);
+  });
+
   it('keeps every status hue at WCAG AA against its own subtle fill', () => {
     const failures = statusHues.flatMap((hue) =>
       belowAA(
@@ -240,6 +288,10 @@ describe.each([
       ),
     );
     expect(failures).toEqual([]);
+  });
+
+  it('keeps labels at WCAG AA on strong action and status surfaces', () => {
+    expect(belowAA(theme, ['rgb-text-on-status'], strongStatusSurfaces)).toEqual([]);
   });
 });
 

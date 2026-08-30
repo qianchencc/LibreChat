@@ -3,6 +3,7 @@ const path = require('path');
 const resolveConfig = require('tailwindcss/resolveConfig');
 const tailwindPreset = require('../../tailwind.preset.cjs');
 const packageConfig = require('../../tailwind.config.js');
+const applicationConfig = require('../../../../client/tailwind.config.cjs');
 const packageJson = require('../../package.json');
 const { defaultAppearance, themeAppearanceProperties } = require('./registry');
 
@@ -62,7 +63,17 @@ describe('LibreChat Tailwind preset', () => {
     );
 
     Object.entries(themeAppearanceProperties).forEach(([key, property]) => {
-      expect(applicationStyles).toContain(`${property}: ${defaultAppearance[key]};`);
+      const declaration = `${property}: ${defaultAppearance[key]};`.replaceAll('"', "'");
+      expect(applicationStyles).toContain(declaration);
     });
+  });
+
+  it('routes the application sans family through the shared UI font role', () => {
+    const resolved = resolveConfig(applicationConfig);
+
+    expect(resolved.theme.fontFamily.sans).toEqual([
+      `var(--theme-font-family, ${defaultAppearance.fontFamily})`,
+    ]);
+    expect(resolved.theme.fontFamily.mono).toEqual(['Roboto Mono', 'monospace']);
   });
 });
