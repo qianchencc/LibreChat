@@ -14,6 +14,8 @@ import 'lenis/dist/lenis.css';
 import './landing.css';
 
 function useLandingSmoothScroll(reduceMotion: boolean | null) {
+  const [isScrolling, setIsScrolling] = useState(false);
+
   useEffect(() => {
     if (reduceMotion) {
       return;
@@ -27,13 +29,25 @@ function useLandingSmoothScroll(reduceMotion: boolean | null) {
       syncTouch: false,
     });
     const update = ({ timestamp }: { timestamp: number }) => lenis.raf(timestamp);
+    let previousScrollState = false;
+    const unsubscribe = lenis.on('scroll', (currentLenis) => {
+      const nextScrollState = Boolean(currentLenis.isScrolling);
+      if (nextScrollState === previousScrollState) {
+        return;
+      }
+      previousScrollState = nextScrollState;
+      setIsScrolling(nextScrollState);
+    });
 
     frame.update(update, true);
     return () => {
       cancelFrame(update);
+      unsubscribe();
       lenis.destroy();
     };
   }, [reduceMotion]);
+
+  return isScrolling;
 }
 
 function ProductVideo({
@@ -43,6 +57,7 @@ function ProductVideo({
   preload = 'none',
   className,
   active,
+  suspendPlayback = false,
   restartOnActivate = false,
   onRequestActivate,
 }: {
@@ -52,6 +67,7 @@ function ProductVideo({
   preload?: 'none' | 'metadata';
   className?: string;
   active?: boolean;
+  suspendPlayback?: boolean;
   restartOnActivate?: boolean;
   onRequestActivate?: () => void;
 }) {
@@ -68,7 +84,7 @@ function ProductVideo({
       return;
     }
 
-    if (reduceMotion) {
+    if (reduceMotion || suspendPlayback) {
       video.pause();
       return;
     }
@@ -109,7 +125,7 @@ function ProductVideo({
 
     observer.observe(video);
     return () => observer.disconnect();
-  }, [active, reduceMotion, restartOnActivate]);
+  }, [active, reduceMotion, restartOnActivate, suspendPlayback]);
 
   const togglePlayback = () => {
     const video = videoRef.current;
@@ -284,6 +300,7 @@ function StoryPanel({
   story,
   index,
   active,
+  suspendPlayback,
   receded,
   onActivate,
   setRef,
@@ -291,6 +308,7 @@ function StoryPanel({
   story: LandingStory;
   index: number;
   active: boolean;
+  suspendPlayback: boolean;
   receded: boolean;
   onActivate: () => void;
   setRef: (element: HTMLElement | null) => void;
@@ -329,6 +347,7 @@ function StoryPanel({
         <ProductVideo
           {...story.media}
           active={active}
+          suspendPlayback={suspendPlayback}
           restartOnActivate={true}
           onRequestActivate={onActivate}
           preload="metadata"
@@ -352,7 +371,7 @@ function StoryPanel({
   );
 }
 
-function WorkflowSection() {
+function WorkflowSection({ suspendPlayback }: { suspendPlayback: boolean }) {
   const localize = useLocalize();
   const storyRefs = useRef<Array<HTMLElement | null>>([]);
   const [activeStory, setActiveStory] = useState<number | null>(null);
@@ -395,6 +414,7 @@ function WorkflowSection() {
               story={story}
               index={index}
               active={activeStory === index}
+              suspendPlayback={suspendPlayback}
               receded={activeStory !== null && index < activeStory}
               onActivate={() => setActiveStory(index)}
               setRef={(element) => {
@@ -463,7 +483,7 @@ export default function LandingView() {
   const { data: startupConfig } = useGetStartupConfig();
   const appTitle = startupConfig?.appTitle || DEFAULT_APP_TITLE;
 
-  useLandingSmoothScroll(reduceMotion);
+  const suspendPlayback = useLandingSmoothScroll(reduceMotion);
 
   useEffect(() => {
     document.title = appTitle;
@@ -531,7 +551,7 @@ export default function LandingView() {
           </div>
         </section>
 
-        <WorkflowSection />
+        <WorkflowSection suspendPlayback={suspendPlayback} />
         <CapabilitiesSection />
 
         <section className="px-4 py-24 sm:px-6 md:py-32 lg:px-8">

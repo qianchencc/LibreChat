@@ -4,14 +4,30 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import Lenis from 'lenis';
 import LandingView from '../LandingView';
 
 jest.mock('lenis', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    destroy: jest.fn(),
-    raf: jest.fn(),
-  })),
+  default: jest.fn().mockImplementation(() => {
+    type MockScrollState = false | 'smooth';
+    type MockScrollListener = (mockLenis: { isScrolling: MockScrollState }) => void;
+    const listeners = new Set<MockScrollListener>();
+    const instance = {
+      isScrolling: false as MockScrollState,
+      destroy: jest.fn(),
+      raf: jest.fn(),
+      on: jest.fn((_event: string, mockListener: MockScrollListener) => {
+        listeners.add(mockListener);
+        return () => listeners.delete(mockListener);
+      }),
+      emitScroll: (isScrolling: MockScrollState) => {
+        instance.isScrolling = isScrolling;
+        listeners.forEach((listener) => listener(instance));
+      },
+    };
+    return instance;
+  }),
 }));
 
 class MockIntersectionObserver {
@@ -182,6 +198,42 @@ describe('LandingView', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Play demonstration' })[3]);
     await waitFor(() => expect(play.mock.instances.at(-1)).toBe(videos[3]));
     expect(pause.mock.instances).toContain(videos[1]);
+
+    play.mockRestore();
+    pause.mockRestore();
+  });
+
+  it('pauses playback during smooth scrolling and resumes from the same time', async () => {
+    const play = jest
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockImplementation(() => Promise.resolve());
+    const pause = jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const { container } = render(
+      <MemoryRouter>
+        <LandingView />
+      </MemoryRouter>,
+    );
+    const video = container.querySelector('video') as HTMLVideoElement;
+    const storyObserver = MockIntersectionObserver.instances.find(
+      (observer) => observer.targets.length === 4,
+    );
+    const lenis = jest.mocked(Lenis).mock.results.at(-1)?.value as {
+      emitScroll: (isScrolling: false | 'smooth') => void;
+    };
+
+    act(() => storyObserver?.trigger(storyObserver.targets[0], true));
+    await waitFor(() => expect(play.mock.instances.at(-1)).toBe(video));
+    video.currentTime = 7;
+    pause.mockClear();
+
+    act(() => lenis.emitScroll('smooth'));
+    await waitFor(() => expect(pause.mock.instances).toContain(video));
+    expect(video.currentTime).toBe(7);
+
+    play.mockClear();
+    act(() => lenis.emitScroll(false));
+    await waitFor(() => expect(play.mock.instances.at(-1)).toBe(video));
+    expect(video.currentTime).toBe(7);
 
     play.mockRestore();
     pause.mockRestore();
