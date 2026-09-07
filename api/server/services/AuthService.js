@@ -225,7 +225,7 @@ const sendVerificationEmail = async (user) => {
   }/verify?token=${verifyToken}&email=${encodeURIComponent(email)}`;
   await sendEmail({
     email,
-    subject: 'Verify your email',
+    subject: `${process.env.APP_TITLE || '尘Chat'} 邮箱验证`,
     payload: {
       appName: process.env.APP_TITLE || '尘Chat',
       name: user.name || user.username || email,
@@ -491,7 +491,7 @@ const requestPasswordReset = async (req) => {
   if (emailEnabled) {
     await sendEmail({
       email: user.email,
-      subject: 'Password Reset Request',
+      subject: `${process.env.APP_TITLE || '尘Chat'} 密码重置请求`,
       payload: {
         appName: process.env.APP_TITLE || '尘Chat',
         name: user.name || user.username || user.email,
@@ -542,7 +542,7 @@ const resetPassword = async (userId, token, password) => {
   if (checkEmailConfig()) {
     await sendEmail({
       email: user.email,
-      subject: 'Password Reset Successfully',
+      subject: `${process.env.APP_TITLE || '尘Chat'} 密码已重置`,
       payload: {
         appName: process.env.APP_TITLE || '尘Chat',
         name: user.name || user.username || user.email,
@@ -874,7 +874,7 @@ const resendVerificationEmail = async (req) => {
 
     await sendEmail({
       email: user.email,
-      subject: 'Verify your email',
+      subject: `${process.env.APP_TITLE || '尘Chat'} 邮箱验证`,
       payload: {
         appName: process.env.APP_TITLE || '尘Chat',
         name: user.name || user.username || user.email,

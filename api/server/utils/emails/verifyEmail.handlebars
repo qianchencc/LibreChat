@@ -1,347 +1,155 @@
-<html
-  xmlns='http://www.w3.org/1999/xhtml'
-  xmlns:v='urn:schemas-microsoft-com:vml'
-  xmlns:o='urn:schemas-microsoft-com:office:office'
->
-
+<html lang='zh-CN'>
   <head>
-    <!--[if gte mso 9]>
-<xml>
-<o:OfficeDocumentSettings>
-    <o:AllowPNG />
-    <o:PixelsPerInch>96</o:PixelsPerInch>
-</o:OfficeDocumentSettings>
-</xml>
-<![endif]-->
-    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+    <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <meta name='x-apple-disable-message-reformatting' />
-    <meta name='color-scheme' content='light dark' />
-    <!--[if !mso]><!-->
-    <meta http-equiv='X-UA-Compatible' content='IE=edge' />
-    <!--<![endif]-->
-    <title></title>
-    <style type='text/css'>
-      @media (prefers-color-scheme: dark) {
-        .darkmode {
-          background-color: #212121 !important;
-        }
-        .darkmode p {
-          color: #ffffff !important;
-        }
+    <meta name='color-scheme' content='light only' />
+    <meta name='supported-color-schemes' content='light only' />
+    <title>验证您的邮箱</title>
+    <style>
+      :root {
+        color-scheme: light only;
+        supported-color-schemes: light only;
       }
-      @media only screen and (min-width: 520px) {
-        .u-row {
-          width: 500px !important;
-        }
-        .u-row .u-col {
-          vertical-align: top;
-        }
-        .u-row .u-col-100 {
-          width: 500px !important;
-        }
+      body,
+      table,
+      td,
+      p,
+      a {
+        color-scheme: light only;
       }
-      @media (max-width: 520px) {
-        .u-row-container {
-          max-width: 100% !important;
-          padding-left: 0px !important;
-          padding-right: 0px !important;
+      @media screen and (max-width: 620px) {
+        .email-outer {
+          padding: 16px 8px 24px !important;
         }
-        .u-row .u-col {
-          min-width: 320px !important;
-          max-width: 100% !important;
-          display: block !important;
-        }
-        .u-row {
+        .email-card {
           width: 100% !important;
         }
-        .u-col {
-          width: 100% !important;
+        .email-content {
+          padding: 24px 20px 28px !important;
         }
-        .u-col > div {
-          margin: 0 auto;
+        .email-title {
+          font-size: 28px !important;
+          line-height: 36px !important;
         }
-      }
-      body {
-        margin: 0;
-        padding: 0;
-      }
-      table,
-      tr,
-      td {
-        vertical-align: top;
-        border-collapse: collapse;
-      }
-      .ie-container table,
-      .mso-container table {
-        table-layout: fixed;
-      }
-      * {
-        line-height: inherit;
-      }
-      a[x-apple-data-detectors='true'] {
-        color: inherit !important;
-        text-decoration: none !important;
-      }
-      table,
-      td {
-        color: #ffffff;
-      }
-      #u_body a {
-        color: #0000ee;
-        text-decoration: underline;
+        .email-hero {
+          border-radius: 18px 18px 0 0 !important;
+        }
       }
     </style>
   </head>
-
   <body
-    class='clean-body u_body'
-    style='margin: 0;padding: 0;-webkit-text-size-adjust: 100%;background-color: #212121;color: #ffffff'
+    style="margin:0;padding:0;background:#f5f4ee;color:#141413;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;"
   >
-    <!--[if IE]><div class="ie-container"><![endif]-->
-    <!--[if mso]><div class="mso-container"><![endif]-->
+    <div
+      style='display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;'
+    >完成邮箱验证，开始使用 {{appName}}</div>
     <table
-      id='u_body'
-      style='border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;min-width: 320px;Margin: 0 auto;background-color: #212121;width:100%'
-      cellpadding='0'
+      class='email-bg'
+      role='presentation'
+      width='100%'
       cellspacing='0'
+      cellpadding='0'
+      border='0'
+      background='{{emailAssetBaseUrl}}/auth-paper.jpg'
+      style="width:100%;background:#f5f4ee url('{{emailAssetBaseUrl}}/auth-paper.jpg') center top / cover no-repeat;"
     >
-      <tbody>
-        <tr style='vertical-align: top'>
-          <td
-            style='word-break: break-word;border-collapse: collapse !important;vertical-align: top'
+      <tr>
+        <td class='email-outer' align='center' style='padding:34px 14px 38px;'>
+          <table
+            class='email-card'
+            role='presentation'
+            width='600'
+            cellspacing='0'
+            cellpadding='0'
+            border='0'
+            style='width:600px;max-width:100%;background:#fff9f0;border:1px solid #d7d1c4;border-radius:20px;overflow:hidden;'
           >
-            <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background-color: #212121;"><![endif]-->
-            <div class='u-row-container' style='padding: 0px;background-color: transparent'>
-              <div
-                class='u-row'
-                style='margin: 0 auto;min-width: 320px;max-width: 500px;overflow-wrap: break-word;word-wrap: break-word;word-break: break-word;background-color: transparent;'
-              >
+            <tr>
+              <td style='padding:0;'>
+                <img
+                  class='email-hero'
+                  src='{{emailAssetBaseUrl}}/auth-hero.jpg'
+                  width='600'
+                  alt=''
+                  style='display:block;width:100%;height:auto;border:0;border-radius:20px 20px 0 0;'
+                />
+              </td>
+            </tr>
+            <tr>
+              <td class='email-content' align='center' style='padding:30px 42px 34px;'>
+                <img
+                  src='{{emailAssetBaseUrl}}/chenchat-wordmark.png'
+                  width='136'
+                  height='42'
+                  alt='尘Chat'
+                  style='display:block;width:136px;height:42px;border:0;'
+                />
+                <div style='height:20px;line-height:20px;'>&nbsp;</div>
+                <span
+                  style='display:inline-block;padding:7px 12px;border-radius:999px;background:#f1d8ce;color:#8f4328;font-size:11px;line-height:14px;letter-spacing:.12em;font-weight:700;'
+                >账户安全</span>
+                <h1
+                  class='email-title'
+                  style="margin:18px 0 0;color:#141413;font-family:Georgia,'Noto Serif SC','Songti SC',serif;font-size:34px;line-height:42px;font-weight:600;"
+                >验证您的邮箱</h1>
                 <div
-                  style='border-collapse: collapse;display: table;width: 100%;height: 100%;background-color: transparent;'
+                  style='margin:14px auto 0;width:36px;height:3px;background:#da7756;border-radius:999px;'
+                >&nbsp;</div>
+                <p
+                  style='margin:20px auto 0;max-width:450px;color:#675d53;font-size:16px;line-height:27px;'
+                >{{name}}，您好。感谢您注册 {{appName}}。请确认此邮箱属于您，以完成账户设置。</p>
+                <table
+                  role='presentation'
+                  cellspacing='0'
+                  cellpadding='0'
+                  border='0'
+                  style='margin:28px auto 0;'
                 >
-                  <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding: 0px;background-color: transparent;" align="center"><table cellpadding="0" cellspacing="0" border="0" style="width:500px;"><tr style="background-color: transparent;"><![endif]-->
-                  <!--[if (mso)|(IE)]><td align="center" width="500" style="background-color: #212121;width: 500px;padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;" valign="top"><![endif]-->
-                  <div
-                    class='u-col u-col-100'
-                    style='max-width: 320px;min-width: 500px;display: table-cell;vertical-align: top;'
-                  >
-                    <div
-                      style='background-color: #212121;height: 100%;width: 100% !important;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;'
+                  <tr>
+                    <td
+                      align='center'
+                      bgcolor='#da7756'
+                      style='border:1px solid #bd6244;border-radius:10px;'
                     >
-                      <!--[if (!mso)&(!IE)]><!-->
-                      <div
-                        style='box-sizing: border-box; height: 100%; padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;'
-                      >
-                        <!--<![endif]-->
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <!--[if mso]><table width="100%"><tr><td><![endif]-->
-                                <h1
-                                  style='margin: 0px; line-height: 140%; text-align: left; word-wrap: break-word; font-size: 22px; font-weight: 700;'
-                                >
-                                  <div>
-                                    <div>Welcome to {{appName}}!</div>
-                                  </div>
-                                </h1>
-                                <!--[if mso]></td></tr></table><![endif]-->
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <div
-                                  style='font-size: 14px; line-height: 140%; text-align: left; word-wrap: break-word;'
-                                >
-                                  <div>
-                                    <div>Dear {{name}},</div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <div
-                                  style='font-size: 14px; line-height: 140%; text-align: left; word-wrap: break-word;'
-                                >
-                                  <div>
-                                    <div>Thank you for registering with
-                                      {{appName}}. To complete your registration and verify your
-                                      email address, please click the button below:</div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <!--[if mso]><style>.v-button {background: transparent !important;}</style><![endif]-->
-                                <div align='left'>
-                                  <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{verificationLink}}" style="height:37px; v-text-anchor:middle; width:114px;" arcsize="11%"  stroke="f" fillcolor="#10a37f"><w:anchorlock/><center style="color:#FFFFFF;"><![endif]-->
-                                  <a
-                                    href='{{verificationLink}}'
-                                    target='_blank'
-                                    class='v-button'
-                                    style='box-sizing: border-box;display: inline-block;text-decoration: none;-webkit-text-size-adjust: none;text-align: center;color: #FFFFFF; background-color: #10a37f; border-radius: 4px;-webkit-border-radius: 4px; -moz-border-radius: 4px; width:auto; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; mso-border-alt: none;font-size: 14px;'
-                                  >
-                                    <span style='display:block;padding:10px 20px;line-height:120%;'>
-                                      <div>
-                                        <div>Verify Email</div>
-                                      </div>
-                                    </span>
-                                  </a>
-                                  <!--[if mso]></center></v:roundrect><![endif]-->
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <div
-                                  style='font-size: 14px; line-height: 140%; text-align: left; word-wrap: break-word;'
-                                >
-                                  <div>
-                                    <div>If you did not create an account with
-                                      {{appName}}, please ignore this email.</div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <div
-                                  style='font-size: 14px; line-height: 140%; text-align: left; word-wrap: break-word;'
-                                >
-                                  <div>Best regards,</div>
-                                  <div>The {{appName}} Team</div>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <table
-                          style='font-family:arial,helvetica,sans-serif;'
-                          role='presentation'
-                          cellpadding='0'
-                          cellspacing='0'
-                          width='100%'
-                          border='0'
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style='overflow-wrap:break-word;word-break:break-word;padding:0px 10px 10px;font-family:arial,helvetica,sans-serif;'
-                                align='left'
-                              >
-                                <div
-                                  style='font-size: 14px; line-height: 140%; text-align: right; word-wrap: break-word;'
-                                >
-                                  <div>
-                                    <div><sub>©
-                                        {{year}}
-                                        {{appName}}. All rights reserved.</sub></div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <!--[if (!mso)&(!IE)]><!-->
-                      </div>
-                      <!--<![endif]-->
-                    </div>
-                  </div>
-                  <!--[if (mso)|(IE)]></td><![endif]-->
-                  <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
-                </div>
-              </div>
-            </div>
-            <!--[if (mso)|(IE)]></td></tr></table><![endif]-->
-          </td>
-        </tr>
-      </tbody>
+                      <a
+                        href='{{{verificationLink}}}'
+                        target='_blank'
+                        style='display:inline-block;padding:14px 28px;color:#141413;font-size:15px;line-height:18px;font-weight:700;text-decoration:none;'
+                      >验证邮箱</a>
+                    </td>
+                  </tr>
+                </table>
+                <p
+                  style='margin:22px auto 0;max-width:460px;color:#675d53;font-size:13px;line-height:21px;'
+                >链接将在 15 分钟后失效。若按钮无法打开，请复制以下地址：</p>
+                <p
+                  style='margin:8px auto 0;max-width:500px;color:#8f4328;font-size:12px;line-height:19px;word-break:break-all;'
+                >{{{verificationLink}}}</p>
+                <table
+                  role='presentation'
+                  width='100%'
+                  cellspacing='0'
+                  cellpadding='0'
+                  border='0'
+                  style='margin-top:26px;border-top:1px dashed #d7d1c4;'
+                >
+                  <tr>
+                    <td
+                      style='padding-top:20px;color:#556545;font-size:13px;line-height:21px;'
+                    >若并非您本人注册，可以安全地忽略这封邮件。</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <p style='margin:18px 0 0;color:#675d53;font-size:12px;line-height:20px;'>此邮件由
+            {{appName}}
+            自动发送，请勿直接回复。<br />&copy;
+            {{year}}
+            {{appName}}</p>
+        </td>
+      </tr>
     </table>
-    <!--[if mso]></div><![endif]-->
-    <!--[if IE]></div><![endif]-->
   </body>
-
 </html>

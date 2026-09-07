@@ -490,6 +490,7 @@ describe('registerUser', () => {
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'mixed.case@example.com',
+        subject: '尘Chat 邮箱验证',
         payload: expect.objectContaining({
           verificationLink: expect.stringContaining(encodeURIComponent('mixed.case@example.com')),
         }),

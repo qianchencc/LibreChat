@@ -63,6 +63,16 @@ const sendEmailViaSMTP = async ({ transporterOptions, mailOptions }) => {
   return await transporter.sendMail(mailOptions);
 };
 
+const getEmailAssetBaseUrl = () => {
+  const configuredBase = process.env.EMAIL_ASSET_BASE_URL?.trim();
+  if (configuredBase) {
+    return configuredBase.replace(/\/+$/, '');
+  }
+
+  const clientDomain = process.env.DOMAIN_CLIENT?.trim().replace(/\/+$/, '');
+  return clientDomain ? `${clientDomain}/assets/email` : '';
+};
+
 /**
  * Sends an email using the specified template, subject, and payload.
  *
@@ -94,13 +104,16 @@ const sendEmail = async ({ email, subject, payload, template, throwError = true 
   try {
     const { content: source } = await readFileAsString(path.join(__dirname, 'emails', template));
     const compiledTemplate = handlebars.compile(source);
-    const html = compiledTemplate(payload);
+    const html = compiledTemplate({
+      ...payload,
+      emailAssetBaseUrl: getEmailAssetBaseUrl(),
+    });
 
     // Prepare common email data
-    const fromName = process.env.EMAIL_FROM_NAME || process.env.APP_TITLE;
+    const fromName = process.env.EMAIL_FROM_NAME || process.env.APP_TITLE || '尘Chat';
     const fromEmail = process.env.EMAIL_FROM;
     const fromAddress = `"${fromName}" <${fromEmail}>`;
-    const toAddress = `"${payload.name}" <${email}>`;
+    const toAddress = `"${payload.name || email}" <${email}>`;
 
     // Check if Mailgun is configured
     if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
