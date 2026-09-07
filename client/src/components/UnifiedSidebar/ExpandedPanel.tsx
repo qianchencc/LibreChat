@@ -1,6 +1,6 @@
 import { memo, useCallback, lazy, Suspense } from 'react';
 import { useRecoilValue } from 'recoil';
-import { SquarePen } from 'lucide-react';
+import { Home, SquarePen } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { Skeleton, Sidebar, Button, TooltipAnchor } from '@librechat/client';
 import type { NavLink } from '~/common';
@@ -192,7 +192,23 @@ function ExpandedPanel({
         ))}
       </div>
 
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col gap-1">
+        <TooltipAnchor
+          side="right"
+          description={localize('com_ui_go_back')}
+          render={
+            <Button
+              asChild
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 rounded-lg text-text-secondary"
+            >
+              <a href="/" data-testid="nav-home" aria-label={localize('com_ui_go_back')}>
+                <Home className="h-5 w-5" aria-hidden="true" />
+              </a>
+            </Button>
+          }
+        />
         <Suspense fallback={<Skeleton className="h-9 w-9 rounded-lg" />}>
           <AccountSettings collapsed />
         </Suspense>

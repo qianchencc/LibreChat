@@ -258,4 +258,10 @@ describe('ExpandedPanel', () => {
       expect(localStorage.getItem('side:active-panel')).toBe('prompts');
     });
   });
+
+  it('links back to the public landing page', () => {
+    renderPanel();
+
+    expect(screen.getByTestId('nav-home')).toHaveAttribute('href', '/');
+  });
 });

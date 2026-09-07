@@ -1,5 +1,6 @@
 import { memo, lazy, Suspense, useEffect, useRef } from 'react';
 import { Button, Sidebar, Skeleton } from '@librechat/client';
+import { Home } from 'lucide-react';
 import type { NavLink } from '~/common';
 import { CLOSE_SIDEBAR_ID } from '~/components/Chat/Menus/OpenSidebar';
 import { useShortcutAriaKey } from '~/hooks/useKeyboardShortcuts';
@@ -74,6 +75,11 @@ function Header({
         onNavigate={onClose}
         routeActiveId={routeActiveId}
       />
+      <Button asChild size="icon" variant="header-action" className="flex-shrink-0">
+        <a href="/" data-testid="nav-home" aria-label={localize('com_ui_go_back')}>
+          <Home className="icon-md" aria-hidden="true" />
+        </a>
+      </Button>
       <Suspense fallback={<Skeleton className="size-9 rounded-lg" />}>
         <AccountSettings collapsed />
       </Suspense>

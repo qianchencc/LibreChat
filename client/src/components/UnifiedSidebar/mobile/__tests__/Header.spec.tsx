@@ -15,12 +15,16 @@ jest.mock('@librechat/client', () => ({
     .requireActual<typeof import('react')>('react')
     .forwardRef<
       HTMLButtonElement,
-      React.ComponentProps<'button'>
-    >(({ children, ...props }, ref) => (
-      <button ref={ref} {...props}>
-        {children}
-      </button>
-    )),
+      React.ComponentProps<'button'> & { asChild?: boolean }
+    >(({ children, asChild, ...props }, ref) =>
+      asChild ? (
+        <>{children}</>
+      ) : (
+        <button ref={ref} {...props}>
+          {children}
+        </button>
+      ),
+    ),
   Sidebar: (props: React.ComponentProps<'svg'>) => <svg data-testid="sidebar-icon" {...props} />,
   Skeleton: () => <div data-testid="skeleton" />,
 }));
@@ -113,5 +117,11 @@ describe('mobile drawer header', () => {
     expect(container.firstElementChild?.firstElementChild).toBe(toggle);
     expect(toggle).toHaveAttribute('variant', 'header-action');
     expect(toggle.querySelector('[data-testid="sidebar-icon"]')).not.toBeNull();
+  });
+
+  it('links back to the public landing page', () => {
+    render(<Header links={links} expanded={true} onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('nav-home')).toHaveAttribute('href', '/');
   });
 });
