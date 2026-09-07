@@ -110,7 +110,7 @@ function RequestPasswordReset() {
           />
           <label
             htmlFor="email"
-            className="absolute -top-2 left-2 z-10 bg-surface-primary px-2 text-sm text-text-secondary transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-text-tertiary peer-focus:-top-2 peer-focus:text-sm peer-focus:text-accent-primary"
+            className="absolute -top-2 left-2 z-10 bg-surface-primary px-2 text-sm text-text-secondary transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:bg-transparent peer-placeholder-shown:px-0 peer-placeholder-shown:text-base peer-placeholder-shown:text-text-tertiary peer-focus:-top-2 peer-focus:bg-surface-primary peer-focus:px-2 peer-focus:text-sm peer-focus:text-accent-primary"
           >
             {localize('com_auth_email_address')}
           </label>
