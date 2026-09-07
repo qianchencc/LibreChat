@@ -24,8 +24,7 @@ async function registrationErrorIsVisible(page: Page) {
 }
 
 async function registerSecondaryUser(page: Page, user: User) {
-  await page.goto('/', { timeout: 10000 });
-  await page.waitForURL(/\/login/, { timeout: 10000 });
+  await page.goto('/login', { timeout: 10000 });
   await register(page, user);
 
   try {
@@ -36,8 +35,7 @@ async function registerSecondaryUser(page: Page, user: User) {
     }
 
     await cleanupUser(user);
-    await page.goto('/', { timeout: 10000 });
-    await page.waitForURL(/\/login/, { timeout: 10000 });
+    await page.goto('/login', { timeout: 10000 });
     await register(page, user);
     await page.waitForURL(/\/c\/new/, { timeout: 10000 });
   }
