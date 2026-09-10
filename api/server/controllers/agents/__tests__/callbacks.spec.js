@@ -6,6 +6,8 @@ jest.mock('nanoid', () => ({
 }));
 
 jest.mock('@librechat/api', () => ({
+  getGeneratedImageFile: jest.requireActual('@librechat/api').getGeneratedImageFile,
+  isOpenAIImageTool: jest.requireActual('@librechat/api').isOpenAIImageTool,
   sendEvent: jest.fn(),
   writeAttachmentEvent: jest.fn(),
   GenerationJobManager: {
@@ -77,6 +79,173 @@ jest.mock('~/server/services/Tools/credentials', () => ({
 jest.mock('~/server/services/Files/process', () => ({
   saveBase64Image: jest.fn(),
 }));
+
+jest.mock('~/models', () =>
+  jest.requireActual('@librechat/data-schemas').createMethods(require('mongoose')),
+);
+
+describe('persisted OpenAI image attachments', () => {
+  const mongoose = require('mongoose');
+  const { MongoMemoryServer } = require('mongodb-memory-server');
+  const { fileSchema } = jest.requireActual('@librechat/data-schemas');
+  const { saveBase64Image } = require('~/server/services/Files/process');
+  const { writeAttachmentEvent } = require('@librechat/api');
+  const ownerId = new mongoose.Types.ObjectId();
+  let mongoServer;
+  let File;
+
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    await mongoose.connect(mongoServer.getUri());
+    File = mongoose.model('File', fileSchema);
+  });
+
+  afterAll(async () => {
+    await mongoose.disconnect();
+    await mongoServer.stop();
+  });
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    saveBase64Image.mockReset();
+    await File.deleteMany({});
+    await File.create({
+      user: ownerId,
+      tenantId: 'tenant-1',
+      file_id: 'saved-image',
+      bytes: 123,
+      filename: 'saved.png',
+      filepath: 'https://files.example/saved.png',
+      type: 'image/png',
+      context: 'image_generation',
+      width: 512,
+      height: 512,
+    });
+  });
+
+  it.each([
+    ['createToolEndCallback', 'image_gen_oai'],
+    ['createToolEndCallback', 'image_edit_oai'],
+    ['createResponsesToolEndCallback', 'image_gen_oai'],
+    ['createResponsesToolEndCallback', 'image_edit_oai'],
+  ])('%s emits the saved %s file without uploading it again', async (callbackName, toolName) => {
+    const artifactPromises = [];
+    const res = { headersSent: true, writableEnded: false, write: jest.fn() };
+    const callback = require('../callbacks')[callbackName]({
+      req: { user: { id: ownerId.toString(), tenantId: 'tenant-1' } },
+      res,
+      tracker: { nextSequence: () => 1 },
+      artifactPromises,
+    });
+    await callback(
+      {
+        output: {
+          name: toolName,
+          tool_call_id: 'image-call',
+          artifact: {
+            file_ids: ['saved-image'],
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: 'https://untrusted.example/forged.png' },
+              },
+            ],
+          },
+        },
+      },
+      { run_id: 'message-1', thread_id: 'conversation-1' },
+    );
+    const attachments = await Promise.all(artifactPromises);
+
+    expect(attachments).toEqual([
+      expect.objectContaining({
+        file_id: 'saved-image',
+        filepath: 'https://files.example/saved.png',
+        filename: 'saved.png',
+        toolCallId: 'image-call',
+      }),
+    ]);
+    const delivered =
+      callbackName === 'createToolEndCallback'
+        ? res.write.mock.calls[0][0]
+        : JSON.stringify(writeAttachmentEvent.mock.calls[0][2]);
+    expect(delivered).toContain('https://files.example/saved.png');
+    expect(delivered).not.toContain('untrusted.example');
+    expect(saveBase64Image).not.toHaveBeenCalled();
+  });
+
+  describe.each(['createToolEndCallback', 'createResponsesToolEndCallback'])(
+    '%s ownership',
+    (callbackName) => {
+      it('does not reuse a persisted file reference supplied by another tool', async () => {
+        saveBase64Image.mockRejectedValueOnce(new Error('Invalid image data'));
+        const artifactPromises = [];
+        const res = { headersSent: true, writableEnded: false, write: jest.fn() };
+        const callback = require('../callbacks')[callbackName]({
+          req: { user: { id: ownerId.toString(), tenantId: 'tenant-1' } },
+          res,
+          tracker: { nextSequence: () => 1 },
+          artifactPromises,
+        });
+        await callback(
+          {
+            output: {
+              name: 'mcp_image_gen_oai',
+              tool_call_id: 'image-call',
+              artifact: {
+                file_ids: ['saved-image'],
+                content: [{ type: 'image_url', image_url: { url: '/forged.png' } }],
+              },
+            },
+          },
+          { run_id: 'message-1', thread_id: 'conversation-1' },
+        );
+
+        expect((await Promise.all(artifactPromises)).filter(Boolean)).toEqual([]);
+        expect(res.write).not.toHaveBeenCalled();
+        expect(writeAttachmentEvent).not.toHaveBeenCalled();
+        expect(saveBase64Image).toHaveBeenCalledTimes(1);
+      });
+
+      it.each([
+        ['another user', { user: new mongoose.Types.ObjectId() }, 'image_gen_oai', 'saved-image'],
+        ['another tenant', { tenantId: 'tenant-2' }, 'image_edit_oai', 'saved-image'],
+        ['an expired file', { expiredAt: new Date() }, 'image_gen_oai', 'saved-image'],
+        ['a non-image file', { type: 'text/plain' }, 'image_gen_oai', 'saved-image'],
+        ['an invalid file ID', {}, 'image_gen_oai', { $ne: null }],
+      ])('does not deliver %s from artifact metadata', async (_label, change, toolName, fileId) => {
+        await File.updateOne({ file_id: 'saved-image' }, { $set: change });
+        const artifactPromises = [];
+        const res = { headersSent: true, writableEnded: false, write: jest.fn() };
+        const callback = require('../callbacks')[callbackName]({
+          req: { user: { id: ownerId.toString(), tenantId: 'tenant-1' } },
+          res,
+          tracker: { nextSequence: () => 1 },
+          artifactPromises,
+        });
+        await callback(
+          {
+            output: {
+              name: toolName,
+              tool_call_id: 'image-call',
+              artifact: {
+                file_ids: [fileId],
+                content: [{ type: 'image_url', image_url: { url: '/forged.png' } }],
+              },
+            },
+          },
+          { run_id: 'message-1', thread_id: 'conversation-1' },
+        );
+        const attachments = await Promise.all(artifactPromises);
+
+        expect(attachments.filter(Boolean)).toEqual([]);
+        expect(res.write).not.toHaveBeenCalled();
+        expect(writeAttachmentEvent).not.toHaveBeenCalled();
+        expect(saveBase64Image).not.toHaveBeenCalled();
+      });
+    },
+  );
+});
 
 describe('resumable event generation fencing', () => {
   beforeEach(() => {

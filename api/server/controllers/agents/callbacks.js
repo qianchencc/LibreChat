@@ -27,10 +27,13 @@ const {
   isCodeSessionToolName,
   shouldSignalSandboxStart,
   getToolInputValidationDetails,
+  getGeneratedImageFile,
+  isOpenAIImageTool,
 } = require('@librechat/api');
 const { processFileCitations } = require('~/server/services/Files/Citations');
 const { processCodeOutput, runPreviewFinalize } = require('~/server/services/Files/Code/process');
 const { saveBase64Image } = require('~/server/services/Files/process');
+const { findFileById } = require('~/models');
 
 function isHostFileAuthoringArtifact(artifact) {
   return artifact?.[HOST_FILE_AUTHORING_ARTIFACT_KEY] === true;
@@ -912,18 +915,22 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
         if (part.type !== 'image_url') {
           continue;
         }
-        const { url } = part.image_url;
         artifactPromises.push(
           (async () => {
             const filename = `${output.name}_img_${nanoid()}`;
             const file_id = output.artifact.file_ids?.[i];
-            const file = await saveBase64Image(url, {
-              req,
-              file_id,
-              filename,
-              endpoint: metadata.provider,
-              context: FileContext.image_generation,
-            });
+            const file = isOpenAIImageTool(output.name)
+              ? await getGeneratedImageFile({ fileId: file_id, user: req.user }, findFileById)
+              : await saveBase64Image(part.image_url.url, {
+                  req,
+                  file_id,
+                  filename,
+                  endpoint: metadata.provider,
+                  context: FileContext.image_generation,
+                });
+            if (!file) {
+              return null;
+            }
             const fileMetadata = Object.assign(file, {
               messageId: metadata.run_id,
               toolCallId: output.tool_call_id,
@@ -931,10 +938,6 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
             });
             if (!streamId && !res.headersSent) {
               return fileMetadata;
-            }
-
-            if (!fileMetadata) {
-              return null;
             }
 
             writeAttachment(res, streamId, fileMetadata, jobCreatedAt);
@@ -1235,25 +1238,25 @@ function createResponsesToolEndCallback({ req, res, tracker, artifactPromises })
         if (part.type !== 'image_url') {
           continue;
         }
-        const { url } = part.image_url;
         artifactPromises.push(
           (async () => {
             const filename = `${output.name}_img_${nanoid()}`;
             const file_id = output.artifact.file_ids?.[i];
-            const file = await saveBase64Image(url, {
-              req,
-              file_id,
-              filename,
-              endpoint: metadata.provider,
-              context: FileContext.image_generation,
-            });
+            const file = isOpenAIImageTool(output.name)
+              ? await getGeneratedImageFile({ fileId: file_id, user: req.user }, findFileById)
+              : await saveBase64Image(part.image_url.url, {
+                  req,
+                  file_id,
+                  filename,
+                  endpoint: metadata.provider,
+                  context: FileContext.image_generation,
+                });
+            if (!file) {
+              return null;
+            }
             const fileMetadata = Object.assign(file, {
               toolCallId: output.tool_call_id,
             });
-
-            if (!fileMetadata) {
-              return null;
-            }
 
             // For Responses API, emit attachment during streaming
             if (res.headersSent && !res.writableEnded) {

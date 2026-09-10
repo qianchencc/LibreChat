@@ -1,22 +1,19 @@
 const axios = require('axios');
-const { v4 } = require('uuid');
 const OpenAI = require('openai');
 const FormData = require('form-data');
 const { logger } = require('@librechat/data-schemas');
 const { tool } = require('@librechat/agents/langchain/tools');
-const { ContentTypes, EImageOutputType } = require('librechat-data-provider');
+const { EImageOutputType } = require('librechat-data-provider');
 const {
   logAxiosError,
   oaiToolkit,
   extractBaseURL,
   getProxyDispatcher,
   applyAxiosProxyConfig,
+  persistGeneratedImage,
 } = require('@librechat/api');
 const { getStrategyFunctions } = require('~/server/services/Files/strategies');
 const { getFiles } = require('~/models');
-
-const displayMessage =
-  "The tool displayed an image. All generated images are already plainly visible, so don't repeat the descriptions in detail. Do not list download links as they are available in the UI already. The user may download the images by clicking on them, but do not mention anything about downloading to the user.";
 
 /**
  * Replaces unwanted characters from the input string
@@ -30,16 +27,8 @@ function replaceUnwantedChars(inputString) {
     .trim();
 }
 
-function returnValue(value) {
-  if (typeof value === 'string') {
-    return [value, {}];
-  } else if (typeof value === 'object') {
-    if (Array.isArray(value)) {
-      return value;
-    }
-    return [displayMessage, value];
-  }
-  return value;
+function returnError(value) {
+  return [`Error: tool call failed: ${value}`, {}];
 }
 
 function createAbortHandler() {
@@ -189,7 +178,7 @@ function createOpenAIImageTools(fields = {}) {
       } catch (error) {
         const message = '[image_gen_oai] Problem generating the image:';
         logAxiosError({ error, message });
-        return returnValue(`Something went wrong when trying to generate the image. The OpenAI API may be unavailable:
+        return returnError(`Something went wrong when trying to generate the image. The OpenAI API may be unavailable:
 Error Message: ${error.message}`);
       } finally {
         if (abortHandler && derivedSignal) {
@@ -198,38 +187,33 @@ Error Message: ${error.message}`);
       }
 
       if (!resp) {
-        return returnValue(
+        return returnError(
           'Something went wrong when trying to generate the image. The OpenAI API may be unavailable',
         );
       }
 
       // For gpt-image-1, the response contains base64-encoded images
       // TODO: handle cost in `resp.usage`
-      const base64Image = resp.data[0].b64_json;
+      const base64Image = resp.data?.[0]?.b64_json;
 
       if (!base64Image) {
-        return returnValue(
+        return returnError(
           'No image data returned from OpenAI API. There may be a problem with the API or your configuration.',
         );
       }
 
-      const content = [
+      return persistGeneratedImage(
         {
-          type: ContentTypes.IMAGE_URL,
-          image_url: {
-            url: `data:image/${output_format};base64,${base64Image}`,
-          },
+          req,
+          base64Image,
+          outputFormat: output_format,
+          toolName: 'image_gen_oai',
+          endpoint: runnableConfig?.metadata?.provider,
+          signal: runnableConfig?.signal,
         },
-      ];
-
-      const file_ids = [v4()];
-      const response = [
-        {
-          type: ContentTypes.TEXT,
-          text: displayMessage + `\n\ngenerated_image_id: "${file_ids[0]}"`,
-        },
-      ];
-      return [response, { content, file_ids }];
+        /** Files/process imports the tool registry; resolve it only when the tool executes. */
+        require('~/server/services/Files/process').saveBase64Image,
+      );
     },
     oaiToolkit.image_gen_oai,
   );
@@ -371,41 +355,34 @@ Error Message: ${error.message}`);
         const response = await axios.post('/images/edits', formData, axiosConfig);
 
         if (!response.data || !response.data.data || !response.data.data.length) {
-          return returnValue(
+          return returnError(
             'No image data returned from OpenAI API. There may be a problem with the API or your configuration.',
           );
         }
 
         const base64Image = response.data.data[0].b64_json;
         if (!base64Image) {
-          return returnValue(
+          return returnError(
             'No image data returned from OpenAI API. There may be a problem with the API or your configuration.',
           );
         }
 
-        const content = [
+        return await persistGeneratedImage(
           {
-            type: ContentTypes.IMAGE_URL,
-            image_url: {
-              url: `data:image/${imageOutputType};base64,${base64Image}`,
-            },
+            req,
+            base64Image,
+            outputFormat: imageOutputType,
+            toolName: 'image_edit_oai',
+            imageIds: image_ids,
+            endpoint: runnableConfig?.metadata?.provider,
+            signal: runnableConfig?.signal,
           },
-        ];
-
-        const file_ids = [v4()];
-        const textResponse = [
-          {
-            type: ContentTypes.TEXT,
-            text:
-              displayMessage +
-              `\n\ngenerated_image_id: "${file_ids[0]}"\nreferenced_image_ids: ["${image_ids.join('", "')}"]`,
-          },
-        ];
-        return [textResponse, { content, file_ids }];
+          require('~/server/services/Files/process').saveBase64Image,
+        );
       } catch (error) {
         const message = '[image_edit_oai] Problem editing the image:';
         logAxiosError({ error, message });
-        return returnValue(`Something went wrong when trying to edit the image. The OpenAI API may be unavailable:
+        return returnError(`Something went wrong when trying to edit the image. The OpenAI API may be unavailable:
 Error Message: ${error.message || 'Unknown error'}`);
       } finally {
         if (abortHandler && derivedSignal) {

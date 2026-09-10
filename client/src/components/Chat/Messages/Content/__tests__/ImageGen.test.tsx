@@ -9,6 +9,8 @@ jest.mock('~/hooks', () => ({
       com_ui_generating_image: 'Generating image...',
       com_ui_image_created: 'Image created',
       com_ui_image_gen_failed: 'Image generation failed',
+      com_ui_image_edited: 'Image edited',
+      com_ui_cancelled: 'Cancelled',
       com_ui_getting_started: 'Getting started',
       com_ui_creating_image: 'Creating image',
       com_ui_adding_details: 'Adding details',
@@ -18,41 +20,6 @@ jest.mock('~/hooks', () => ({
     return translations[key] || key;
   },
   useProgress: (initialProgress: number) => (initialProgress >= 1 ? 1 : initialProgress),
-}));
-
-const getProgressLabel = (progress: number) =>
-  progress >= 1 ? 'Image created' : 'Generating image...';
-
-jest.mock('../Parts/OpenAIImageGen/ProgressText', () => ({
-  __esModule: true,
-  default: ({
-    toolName,
-    progress,
-    error,
-    onClick,
-    hasInput,
-    isExpanded,
-  }: {
-    toolName: string;
-    progress: number;
-    error?: boolean;
-    onClick?: () => void;
-    hasInput?: boolean;
-    isExpanded?: boolean;
-  }) => (
-    <button
-      data-testid="progress-text"
-      data-tool-name={toolName}
-      data-progress={progress}
-      data-error={error}
-      data-has-input={hasInput}
-      data-is-expanded={isExpanded}
-      onClick={onClick}
-      type="button"
-    >
-      {error ? 'Error' : getProgressLabel(progress)}
-    </button>
-  ),
 }));
 
 jest.mock('@librechat/client', () => ({
@@ -70,7 +37,7 @@ jest.mock('../ToolOutput', () => ({
   ToolIcon: ({ type, isAnimating }: { type: string; isAnimating?: boolean }) => (
     <span data-testid="tool-icon" data-type={type} data-animating={isAnimating} />
   ),
-  isError: (output: string) => typeof output === 'string' && output.toLowerCase().includes('error'),
+  isError: jest.requireActual('../ToolOutput/OutputRenderer').isError,
 }));
 
 jest.mock('~/utils', () => ({
@@ -87,7 +54,7 @@ const defaultProps = {
   output: '',
 };
 
-const renderImageGen = (props: Partial<typeof defaultProps> = {}) =>
+const renderImageGen = (props: Partial<React.ComponentProps<typeof ImageGen>> = {}) =>
   render(
     <RecoilRoot>
       <ImageGen {...defaultProps} {...props} />
@@ -167,14 +134,78 @@ describe('ImageGen - LGCY-01: Legacy and agent-style unification', () => {
     expect(container).toBeTruthy();
   });
 
-  it('handles history reload state (initialProgress=1, no isSubmitting)', () => {
+  it('reports failure when a completed historical tool has no image attachment', () => {
     renderImageGen({
       initialProgress: 1,
       isSubmitting: false,
     });
 
-    const progressText = screen.getByTestId('progress-text');
-    expect(progressText).toHaveTextContent('Image created');
+    expect(screen.queryByText('Image created')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Image generation failed')).toHaveLength(2);
+  });
+});
+
+describe('OpenAI image persistence feedback', () => {
+  const attachment = {
+    filepath: '/images/generated.png',
+    filename: 'generated.png',
+    messageId: 'message-1',
+    conversationId: 'conversation-1',
+    toolCallId: 'image-call',
+  };
+
+  it.each(['image_gen_oai', 'image_edit_oai'])(
+    '%s waits for its attachment after the step closes',
+    (toolName) => {
+      const props = {
+        ...defaultProps,
+        toolName,
+        isSubmitting: true,
+        runStepStatus: 'completed' as const,
+      };
+      const { rerender } = render(<ImageGen {...props} />);
+
+      expect(screen.queryByText('Image created')).not.toBeInTheDocument();
+      expect(screen.queryByText('Image edited')).not.toBeInTheDocument();
+      expect(screen.queryByText('Image generation failed')).not.toBeInTheDocument();
+
+      rerender(<ImageGen {...props} attachments={[attachment]} />);
+
+      expect(screen.getByTestId('image')).toBeInTheDocument();
+      expect(
+        screen.getAllByText(toolName === 'image_gen_oai' ? 'Image created' : 'Image edited').length,
+      ).toBeGreaterThan(0);
+      expect(screen.queryByText('Image generation failed')).not.toBeInTheDocument();
+    },
+  );
+
+  it('reports a storage Error immediately while the model is still responding', () => {
+    renderImageGen({
+      isSubmitting: true,
+      output: 'Error: tool call failed: The generated image could not be saved.',
+    });
+    expect(screen.getAllByText('Image generation failed')).toHaveLength(2);
+    expect(screen.queryByText('Image created')).not.toBeInTheDocument();
+  });
+
+  it('reports failure when the finished turn has only an unusable attachment', () => {
+    renderImageGen({
+      runStepStatus: 'completed',
+      attachments: [{ ...attachment, filepath: '' }],
+    });
+    expect(screen.getAllByText('Image generation failed')).toHaveLength(2);
+    expect(screen.queryByTestId('image')).not.toBeInTheDocument();
+  });
+
+  it('keeps cancellation authoritative even when no image was delivered', () => {
+    renderImageGen({ runStepStatus: 'cancelled' });
+    expect(screen.getAllByText('Cancelled')).toHaveLength(2);
+    expect(screen.queryByText('Image generation failed')).not.toBeInTheDocument();
+  });
+
+  it('preserves completion behavior for other image providers', () => {
+    renderImageGen({ toolName: 'gemini_image_gen' });
+    expect(screen.getAllByText('Image created')).toHaveLength(2);
   });
 });
 

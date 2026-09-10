@@ -65,6 +65,10 @@ export default function OpenAIImageGen({
    *  describe_intent); wins over the phase texts. */
   const intent = useToolCallIntent(_args);
   const isAgentStyle = toolName != null && AGENT_STYLE_TOOLS.has(toolName);
+  const requiresAttachment = toolName === 'image_gen_oai' || toolName === 'image_edit_oai';
+  const attachment = requiresAttachment
+    ? attachments?.find((file) => typeof file.filepath === 'string' && file.filepath.length > 0)
+    : attachments?.[0];
   const [agentProgress, setAgentProgress] = useState(initialProgress);
   const isClosed = runStepStatus != null;
   /** Passing 1 in stops `useProgress` scheduling its interval; masking the
@@ -72,10 +76,16 @@ export default function OpenAIImageGen({
    *  hook settles through 0.99 and a 200ms timeout. */
   const legacyProgress = useProgress(isAgentStyle || isClosed ? 1 : initialProgress);
   const livingProgress = isAgentStyle ? agentProgress : legacyProgress;
-  const progress = isClosed ? 1 : livingProgress;
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const hasError = (typeof output === 'string' && isError(output)) || runStepStatus === 'failed';
+  const missingImage = requiresAttachment && !attachment;
+  /** Tool closure can arrive before its attachment; wait for the turn to finish. */
+  const deliveryFailed =
+    missingImage &&
+    isSubmitting !== true &&
+    (runStepStatus === 'completed' || (runStepStatus == null && initialProgress >= 1));
+  const hasError =
+    (typeof output === 'string' && isError(output)) || runStepStatus === 'failed' || deliveryFailed;
 
   /**
    * Determines if the image generation was cancelled.
@@ -91,6 +101,10 @@ export default function OpenAIImageGen({
    * `hasError` into its own cancellation signal.
    */
   const reportsError = hasError && runStepStatus !== 'cancelled';
+  const settledProgress =
+    isClosed || (requiresAttachment && (attachment || reportsError)) ? 1 : livingProgress;
+  const progress =
+    missingImage && !reportsError && !cancelled ? Math.min(settledProgress, 0.9) : settledProgress;
 
   let width: number | undefined;
   let height: number | undefined;
@@ -128,7 +142,6 @@ export default function OpenAIImageGen({
     height = undefined;
   }
 
-  const attachment = attachments?.[0];
   const {
     width: imageWidth,
     height: imageHeight,
