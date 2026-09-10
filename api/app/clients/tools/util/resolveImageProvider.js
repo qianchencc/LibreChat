@@ -2,7 +2,7 @@ const { getCustomEndpointConfig, isUserProvided } = require('@librechat/api');
 const { extractEnvVariable } = require('librechat-data-provider');
 const models = require('~/models');
 
-const IMAGE_MODEL = 'gpt-image-2';
+const IMAGE_MODEL = 'gpt-image-2.5';
 
 /**
  * Resolves image tool credentials from the custom endpoint used by an agent.

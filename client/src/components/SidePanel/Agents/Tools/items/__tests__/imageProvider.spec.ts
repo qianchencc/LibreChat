@@ -1,10 +1,10 @@
 import { EModelEndpoint } from 'librechat-data-provider';
 import { isImageProviderReady } from '../imageProvider';
 
-const models = { 'Image Provider': ['gpt-5.6-luna', 'gpt-image-2'] };
+const models = { 'Image Provider': ['gpt-5.6-luna', 'gpt-image-2.5'] };
 
 describe('isImageProviderReady', () => {
-  it('accepts a custom provider with gpt-image-2 and a saved user key', () => {
+  it('accepts a custom provider with gpt-image-2.5 and a saved user key', () => {
     expect(
       isImageProviderReady({
         provider: 'Image Provider',
@@ -32,7 +32,7 @@ describe('isImageProviderReady', () => {
     ).toBe(false);
   });
 
-  it('rejects providers without gpt-image-2 or without custom endpoint type', () => {
+  it('rejects providers without gpt-image-2.5 or without custom endpoint type', () => {
     expect(
       isImageProviderReady({
         provider: 'Image Provider',
@@ -46,7 +46,7 @@ describe('isImageProviderReady', () => {
       isImageProviderReady({
         provider: 'openAI',
         endpointConfig: { type: EModelEndpoint.openAI },
-        models: { openAI: ['gpt-image-2'] },
+        models: { openAI: ['gpt-image-2.5'] },
         hasUserKey: false,
       }),
     ).toBe(false);

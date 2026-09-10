@@ -1,7 +1,7 @@
 import { EModelEndpoint } from 'librechat-data-provider';
 import type { TConfig, TModelsConfig } from 'librechat-data-provider';
 
-export const IMAGE_PROVIDER_MODEL = 'gpt-image-2';
+export const IMAGE_PROVIDER_MODEL = 'gpt-image-2.5';
 
 interface ImageProviderReadinessInput {
   provider?: string;

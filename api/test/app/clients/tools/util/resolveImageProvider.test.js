@@ -22,13 +22,13 @@ describe('resolveImageProviderConfig', () => {
     jest.clearAllMocks();
   });
 
-  it('resolves the saved custom provider credentials and gpt-image-2', async () => {
+  it('resolves the saved custom provider credentials and gpt-image-2.5', async () => {
     mockGetCustomEndpointConfig.mockReturnValue({
       name: 'Image Provider',
       apiKey: 'user_provided',
       baseURL: 'user_provided',
       models: {
-        default: [{ name: 'gpt-image-2' }],
+        default: [{ name: 'gpt-image-2.5' }],
       },
     });
     mockGetUserKeyValues.mockResolvedValue({
@@ -45,7 +45,7 @@ describe('resolveImageProviderConfig', () => {
     ).resolves.toEqual({
       IMAGE_GEN_OAI_API_KEY: 'provider-api-key',
       IMAGE_GEN_OAI_BASEURL: 'http://provider.example/v1',
-      IMAGE_GEN_OAI_MODEL: 'gpt-image-2',
+      IMAGE_GEN_OAI_MODEL: 'gpt-image-2.5',
     });
 
     expect(mockGetUserKeyValues).toHaveBeenCalledWith({

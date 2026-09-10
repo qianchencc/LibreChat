@@ -187,7 +187,7 @@ describe('OpenAIImageTools - IMAGE_GEN_OAI_MODEL environment variable', () => {
       req: { user: { id: 'test-user' } },
       IMAGE_GEN_OAI_API_KEY: 'provider-api-key',
       IMAGE_GEN_OAI_BASEURL: 'http://provider.example/v1',
-      IMAGE_GEN_OAI_MODEL: 'gpt-image-2',
+      IMAGE_GEN_OAI_MODEL: 'gpt-image-2.5',
     });
 
     await imageGenTool.func({ prompt: 'test prompt' });
@@ -200,7 +200,7 @@ describe('OpenAIImageTools - IMAGE_GEN_OAI_MODEL environment variable', () => {
     );
     expect(mockGenerate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'gpt-image-2',
+        model: 'gpt-image-2.5',
       }),
       expect.any(Object),
     );

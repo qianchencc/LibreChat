@@ -374,7 +374,7 @@ describe('Tool Handlers', () => {
                       apiKey: 'user_provided',
                       baseURL: 'http://provider.example/v1',
                       models: {
-                        default: ['gpt-5.6-luna', 'gpt-image-2'],
+                        default: ['gpt-5.6-luna', 'gpt-image-2.5'],
                       },
                     },
                   ],
@@ -397,7 +397,7 @@ describe('Tool Handlers', () => {
           }),
         );
         expect(mockImageGenerate).toHaveBeenCalledWith(
-          expect.objectContaining({ model: 'gpt-image-2' }),
+          expect.objectContaining({ model: 'gpt-image-2.5' }),
           expect.any(Object),
         );
       } finally {
