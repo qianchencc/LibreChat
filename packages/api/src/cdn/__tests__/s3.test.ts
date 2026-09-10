@@ -23,6 +23,7 @@ describe('initializeS3', () => {
     jest.clearAllMocks();
     Object.assign(process.env, REQUIRED_ENV);
     delete process.env.AWS_ENDPOINT_URL;
+    delete process.env.AWS_INTERNAL_ENDPOINT_URL;
     delete process.env.AWS_FORCE_PATH_STYLE;
   });
 
@@ -31,6 +32,7 @@ describe('initializeS3', () => {
       delete process.env[key];
     }
     delete process.env.AWS_ENDPOINT_URL;
+    delete process.env.AWS_INTERNAL_ENDPOINT_URL;
     delete process.env.AWS_FORCE_PATH_STYLE;
   });
 
@@ -38,8 +40,8 @@ describe('initializeS3', () => {
     const { S3Client: MockS3Client } = jest.requireMock('@aws-sdk/client-s3') as {
       S3Client: jest.MockedClass<typeof S3Client>;
     };
-    const { initializeS3 } = await import('../s3');
-    return { MockS3Client, initializeS3 };
+    const { initializeS3, initializeS3Presigner } = await import('../s3');
+    return { MockS3Client, initializeS3, initializeS3Presigner };
   }
 
   it('should initialize with region and credentials', async () => {
@@ -135,5 +137,51 @@ describe('initializeS3', () => {
     expect(mockLogger.info).toHaveBeenCalledWith(
       '[initializeS3] S3 initialized using default credentials (IRSA).',
     );
+  });
+
+  it.each([undefined, '', 'https://s3.example.com'])(
+    'reuses the I/O client when the internal endpoint is %s',
+    async (internalEndpoint) => {
+      process.env.AWS_ENDPOINT_URL = 'https://s3.example.com';
+      if (internalEndpoint !== undefined) {
+        process.env.AWS_INTERNAL_ENDPOINT_URL = internalEndpoint;
+      }
+      const { MockS3Client, initializeS3, initializeS3Presigner } = await load();
+
+      expect(initializeS3Presigner()).toBe(initializeS3());
+      expect(MockS3Client).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('shares S3 settings while separating I/O and public signing endpoints', async () => {
+    process.env.AWS_ENDPOINT_URL = 'https://s3.example.com/public';
+    process.env.AWS_INTERNAL_ENDPOINT_URL = 'http://minio:9000/internal';
+    process.env.AWS_FORCE_PATH_STYLE = 'true';
+    const { MockS3Client, initializeS3, initializeS3Presigner } = await load();
+
+    expect(initializeS3()).not.toBe(initializeS3Presigner());
+    expect(initializeS3Presigner()).toBe(initializeS3Presigner());
+    expect(MockS3Client).toHaveBeenCalledTimes(2);
+    for (const endpoint of [process.env.AWS_ENDPOINT_URL, process.env.AWS_INTERNAL_ENDPOINT_URL]) {
+      expect(MockS3Client).toHaveBeenCalledWith({
+        endpoint,
+        region: 'us-east-1',
+        credentials: { accessKeyId: 'test-key-id', secretAccessKey: 'test-secret' },
+        forcePathStyle: true,
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+      });
+    }
+  });
+
+  it('keeps the default AWS endpoint for signing when only an internal endpoint is set', async () => {
+    process.env.AWS_INTERNAL_ENDPOINT_URL = 'http://minio:9000';
+    const { MockS3Client, initializeS3Presigner } = await load();
+    initializeS3Presigner();
+
+    expect(MockS3Client).toHaveBeenCalledWith({
+      region: 'us-east-1',
+      credentials: { accessKeyId: 'test-key-id', secretAccessKey: 'test-secret' },
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+    });
   });
 });

@@ -14,6 +14,7 @@ import {
 } from '@aws-sdk/client-s3';
 import type {
   CompletedPart,
+  S3ServiceException,
   GetObjectCommandInput,
   PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
@@ -49,14 +50,14 @@ import {
   assertPathSegment,
   sanitizeContentDispositionFilename,
 } from '~/storage/validation';
-import { initializeS3 } from '~/cdn/s3';
+import { initializeS3, initializeS3Presigner } from '~/cdn/s3';
 import { deleteRagFile } from '~/files';
 import { s3Config } from './s3Config';
 
 const {
   AWS_BUCKET_NAME: bucketName,
   AWS_ENDPOINT_URL: endpoint,
-  AWS_FORCE_PATH_STYLE: forcePathStyle,
+  AWS_INTERNAL_ENDPOINT_URL: internalEndpoint,
   S3_URL_EXPIRY_SECONDS: s3UrlExpirySeconds,
   S3_REFRESH_EXPIRY_MS: s3RefreshExpiryMs,
 } = s3Config;
@@ -317,7 +318,7 @@ async function getS3URLForKey({
   }
 
   try {
-    const s3 = initializeS3();
+    const s3 = initializeS3Presigner();
     if (!s3) {
       throw new Error('[getS3URL] S3 not initialized');
     }
@@ -392,7 +393,15 @@ export async function saveBufferToS3({
       useInlinePath,
     });
   } catch (error) {
-    logger.error('[saveBufferToS3] Error uploading buffer to S3:', (error as Error).message);
+    const { name, code, $metadata } = error as S3ServiceException & { code?: string };
+    logger.error('[saveBufferToS3] Error uploading buffer to S3:', {
+      name,
+      code,
+      httpStatusCode: $metadata?.httpStatusCode,
+      requestId: $metadata?.requestId,
+      attempts: $metadata?.attempts,
+      totalRetryDelay: $metadata?.totalRetryDelay,
+    });
     throw error;
   }
 }
@@ -671,17 +680,25 @@ export function extractKeyFromS3Url(fileUrlOrKey: string): string {
     const hostname = url.hostname;
     const pathname = url.pathname.substring(1);
 
-    if (endpoint && forcePathStyle) {
-      const endpointUrl = new URL(endpoint);
-      const startPos =
-        endpointUrl.pathname.length +
-        (endpointUrl.pathname.endsWith('/') ? 0 : 1) +
-        bucketName.length +
-        1;
-      const key = url.pathname.substring(startPos);
+    for (const configuredEndpoint of [endpoint, internalEndpoint]) {
+      if (!configuredEndpoint) {
+        continue;
+      }
+      const endpointUrl = new URL(configuredEndpoint);
+      const isPathStyle = url.origin === endpointUrl.origin;
+      const isVirtualHosted =
+        url.protocol === endpointUrl.protocol && url.host === `${bucketName}.${endpointUrl.host}`;
+      if (!isPathStyle && !isVirtualHosted) {
+        continue;
+      }
+      const prefix = `${endpointUrl.pathname.replace(/\/$/, '')}/${isPathStyle ? `${bucketName}/` : ''}`;
+      if (!url.pathname.startsWith(prefix)) {
+        continue;
+      }
+      const key = url.pathname.substring(prefix.length);
       if (!key) {
         logger.warn(
-          `[extractKeyFromS3Url] Extracted key is empty for endpoint path-style URL: ${fileUrlOrKey}`,
+          `[extractKeyFromS3Url] Extracted key is empty for endpoint URL: ${fileUrlOrKey}`,
         );
       } else {
         logger.debug(`[extractKeyFromS3Url] fileUrlOrKey: ${fileUrlOrKey}, Extracted key: ${key}`);

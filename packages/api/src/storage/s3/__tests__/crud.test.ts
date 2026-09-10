@@ -484,8 +484,45 @@ describe('S3 CRUD', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         '[saveBufferToS3] Error uploading buffer to S3:',
-        'S3 upload failed',
+        expect.objectContaining({ name: 'Error' }),
       );
+    });
+
+    it('logs only structured S3 failure metadata and rethrows the original error', async () => {
+      const error = Object.assign(
+        new Error('http://minio:9000/private?X-Amz-Signature=secret user content'),
+        {
+          name: 'SlowDown',
+          code: 'SlowDown',
+          $metadata: {
+            httpStatusCode: 503,
+            requestId: 'request-123',
+            attempts: 3,
+            totalRetryDelay: 250,
+          },
+          $response: { body: 'private response body' },
+        },
+      );
+      s3Mock.on(PutObjectCommand).rejects(error);
+      const { saveBufferToS3 } = await import('../crud');
+
+      await expect(
+        saveBufferToS3({
+          userId: 'user123',
+          buffer: Buffer.from('private image bytes'),
+          fileName: 'private-file.png',
+        }),
+      ).rejects.toBe(error);
+
+      expect(logger.error).toHaveBeenCalledWith('[saveBufferToS3] Error uploading buffer to S3:', {
+        name: 'SlowDown',
+        code: 'SlowDown',
+        httpStatusCode: 503,
+        requestId: 'request-123',
+        attempts: 3,
+        totalRetryDelay: 250,
+      });
+      expect(getSignedUrl).not.toHaveBeenCalled();
     });
   });
 

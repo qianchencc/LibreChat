@@ -44,8 +44,10 @@ export const s3Config: {
   AWS_REGION: string;
   /** S3 bucket name */
   AWS_BUCKET_NAME: string;
-  /** Custom endpoint URL (for MinIO, R2, etc.) */
+  /** Public endpoint URL for presigned links (for MinIO, R2, etc.) */
   AWS_ENDPOINT_URL: string | undefined;
+  /** Optional endpoint override for server-side S3 I/O */
+  AWS_INTERNAL_ENDPOINT_URL: string | undefined;
   /** Use path-style URLs instead of virtual-hosted-style */
   AWS_FORCE_PATH_STYLE: boolean;
   /** Presigned URL expiry in seconds */
@@ -59,8 +61,10 @@ export const s3Config: {
   AWS_REGION: process.env.AWS_REGION ?? '',
   /** S3 bucket name */
   AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME ?? '',
-  /** Custom endpoint URL (for MinIO, R2, etc.) */
+  /** Public endpoint URL for presigned links (for MinIO, R2, etc.) */
   AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL,
+  /** Optional endpoint override for server-side S3 I/O */
+  AWS_INTERNAL_ENDPOINT_URL: process.env.AWS_INTERNAL_ENDPOINT_URL,
   /** Use path-style URLs instead of virtual-hosted-style */
   AWS_FORCE_PATH_STYLE: isEnabled(process.env.AWS_FORCE_PATH_STYLE),
   /** Presigned URL expiry in seconds */
