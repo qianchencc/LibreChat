@@ -296,7 +296,10 @@ export default function useQueryParams({
         clearInterval(intervalId);
 
         // Defer URL cleanup until after submission completes (processSubmission handles it)
-        if (!pendingSubmitRef.current) {
+        if (
+          !pendingSubmitRef.current &&
+          searchParams.toString() !== getPreservedSearchParams().toString()
+        ) {
           setSearchParams(getPreservedSearchParams(), { replace: true });
         }
       };

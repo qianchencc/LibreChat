@@ -506,7 +506,7 @@ describe('useQueryParams', () => {
     expect(mockSubmitMessage).not.toHaveBeenCalled();
   });
 
-  it('should handle empty query parameters', () => {
+  it.each([{}, { projectId: 'project-a' }])('keeps an unchanged URL: %j', (params) => {
     // Setup
     const mockSetValue = jest.fn();
     const mockHandleSubmit = jest.fn();
@@ -535,7 +535,7 @@ describe('useQueryParams', () => {
       }),
     });
 
-    setUrlParams({}); // Empty params
+    setUrlParams(params);
     const mockTextAreaRef = {
       current: {
         focus: jest.fn(),
@@ -555,9 +555,6 @@ describe('useQueryParams', () => {
     expect(mockHandleSubmit).not.toHaveBeenCalled();
     expect(mockSubmitMessage).not.toHaveBeenCalled();
     const mockSetSearchParams = (useSearchParams as jest.Mock).mock.results[0].value[1];
-    const [params, options] = mockSetSearchParams.mock.calls[0];
-    expect(params).toBeInstanceOf(URLSearchParams);
-    expect(params.toString()).toBe('');
-    expect(options).toEqual(expect.objectContaining({ replace: true }));
+    expect(mockSetSearchParams).not.toHaveBeenCalled();
   });
 });

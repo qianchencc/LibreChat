@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { Spinner, useToastContext } from '@librechat/client';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigation, useSearchParams } from 'react-router-dom';
 import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import { Constants, EModelEndpoint, PermissionBits } from 'librechat-data-provider';
 import type { TPreset, TAgentsMap } from 'librechat-data-provider';
@@ -43,6 +43,7 @@ const isValidChatProjectId = (projectId: string | null): projectId is string =>
   projectId != null && /^[a-f\d]{24}$/i.test(projectId);
 
 export default function ChatRoute() {
+  const navigation = useNavigation();
   const { data: startupConfig } = useGetStartupConfig();
   const { isAuthenticated, user, roles } = useAuthRedirect();
   const queryClient = useQueryClient();
@@ -169,8 +170,9 @@ export default function ChatRoute() {
         (!hasSetConversation.current || newConvoNeedsInit) &&
         !modelsQuery.data?.initial) ??
       false;
-    /* Early exit if startupConfig is not loaded and conversation is already set and only initial models have loaded */
-    if (!shouldSetConvo) {
+    /* Lazy navigation keeps this route mounted until its destination loads.
+     * Initialization must not navigate back over that pending user choice. */
+    if (!shouldSetConvo || navigation.state !== 'idle') {
       return;
     }
 
@@ -301,6 +303,7 @@ export default function ChatRoute() {
     /* Creates infinite render if all dependencies included due to newConversation invocations exceeding call stack before hasSetConversation.current becomes truthy */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    navigation.state,
     roles,
     agentsMap,
     agentsQuery.isError,
