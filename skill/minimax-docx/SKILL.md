@@ -40,16 +40,16 @@ Create, edit, and format DOCX documents via CLI tools or direct C# scripts built
 
 **First time:** `bash scripts/setup.sh` (or `powershell scripts/setup.ps1` on Windows, `--minimal` to skip optional deps).
 
-**First operation in session:** `scripts/env_check.sh` — do not proceed if `NOT READY`. (Skip on subsequent operations within the same session.)
+**First operation in session:** `bash scripts/env_check.sh` — do not proceed if `NOT READY`. (Skip on subsequent operations within the same session.) Invoke shell helpers with `bash` so they also work when uploaded skill files have no executable bit.
 
 ## Quick Start: Direct C# Path
 
 When the task requires structural document manipulation (custom styles, complex tables, multi-section layouts, headers/footers, TOC, images), write C# directly instead of wrestling with CLI limitations. Use this scaffold:
 
+Create a `net8.0` Console project with a `ProjectReference` to `scripts/dotnet/MiniMaxAIDocx.Core/MiniMaxAIDocx.Core.csproj`, which supplies the matching Open XML dependency. Set `<UseAppHost>false</UseAppHost>` so `dotnet run --project <your-project>` executes the managed assembly on sandbox `noexec` mounts.
+
 ```csharp
-// File: scripts/dotnet/task.csx  (or a new .cs in a Console project)
-// dotnet run --project scripts/dotnet/MiniMaxAIDocx.Cli -- run-script task.csx
-#r "nuget: DocumentFormat.OpenXml, 3.2.0"
+// File: Program.cs in your Console project
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -100,9 +100,9 @@ If the request spans multiple pipelines, run them sequentially (e.g., Create the
 
 ## Pre-processing
 
-Convert `.doc` → `.docx` if needed: `scripts/doc_to_docx.sh input.doc output_dir/`
+Convert `.doc` → `.docx` if needed: `bash scripts/doc_to_docx.sh input.doc output_dir/`
 
-Preview before editing (avoids reading raw XML): `scripts/docx_preview.sh document.docx`
+Preview before editing (avoids reading raw XML): `bash scripts/docx_preview.sh document.docx`
 
 Analyze structure for editing scenarios: `$CLI analyze --input document.docx`
 
@@ -179,11 +179,11 @@ $CLI validate --input doc.docx --xsd assets/xsd/wml-subset.xsd
 If XSD still fails, fall back to business rules + preview:
 ```bash
 $CLI validate --input doc.docx --business
-scripts/docx_preview.sh doc.docx
+bash scripts/docx_preview.sh doc.docx
 # Verify: font contamination=0, table count correct, drawing count correct, sectPr count correct
 ```
 
-Final preview: `scripts/docx_preview.sh doc.docx`
+Final preview: `bash scripts/docx_preview.sh doc.docx`
 
 ## Critical rules
 

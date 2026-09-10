@@ -10,6 +10,7 @@ export DOTNET_CLI_UI_LANGUAGE=en
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DOTNET_DIR="$SCRIPT_DIR/dotnet"
+DOTNET_PROJECT="$DOTNET_DIR/MiniMaxAIDocx.Cli/MiniMaxAIDocx.Cli.csproj"
 LOG_FILE="$PROJECT_DIR/.setup.log"
 
 # --- Colors ---
@@ -269,22 +270,22 @@ build_project() {
     cd "$DOTNET_DIR"
 
     info "Restoring NuGet packages..."
-    if ! dotnet restore --verbosity quiet 2>>"$LOG_FILE"; then
+    if ! dotnet restore "$DOTNET_PROJECT" --verbosity quiet 2>>"$LOG_FILE"; then
         fail "NuGet restore failed. Check network and $LOG_FILE for details."
         fail "Common causes:"
         fail "  - No internet access (NuGet needs to download packages)"
         fail "  - Corporate proxy blocking nuget.org"
         fail "  - Disk space insufficient"
         echo ""
-        fail "Try manually: cd $DOTNET_DIR && dotnet restore --verbosity detailed"
+        fail "Try manually: dotnet restore $DOTNET_PROJECT --verbosity detailed"
         return 1
     fi
     log "NuGet packages restored"
 
     info "Building project..."
-    if ! dotnet build --verbosity quiet --no-restore 2>>"$LOG_FILE"; then
+    if ! dotnet build "$DOTNET_PROJECT" --verbosity quiet --no-restore 2>>"$LOG_FILE"; then
         fail "Build failed. Check $LOG_FILE for details."
-        fail "Try manually: cd $DOTNET_DIR && dotnet build --verbosity normal"
+        fail "Try manually: dotnet build $DOTNET_PROJECT --verbosity normal"
         return 1
     fi
     log "Project built successfully"

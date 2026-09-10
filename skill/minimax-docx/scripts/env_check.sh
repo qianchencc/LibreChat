@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DOTNET_DIR="$SCRIPT_DIR/dotnet"
+DOTNET_PROJECT="$DOTNET_DIR/MiniMaxAIDocx.Cli/MiniMaxAIDocx.Cli.csproj"
 
 # Force English output for dotnet CLI
 export DOTNET_CLI_UI_LANGUAGE=en
@@ -66,12 +67,12 @@ if [ -d "$DOTNET_DIR" ]; then
         printf "[OK]      %-14s built\n" "project"
     else
         # Try restore + build
-        if dotnet restore "$DOTNET_DIR" --verbosity quiet &>/dev/null; then
+        if dotnet restore "$DOTNET_PROJECT" --verbosity quiet &>/dev/null; then
             printf "[OK]      %-14s packages restored\n" "nuget"
-            if dotnet build "$DOTNET_DIR" --verbosity quiet --no-restore &>/dev/null; then
+            if dotnet build "$DOTNET_PROJECT" --verbosity quiet --no-restore &>/dev/null; then
                 printf "[OK]      %-14s build succeeded\n" "project"
             else
-                printf "[FAIL]    %-14s build failed (run: dotnet build %s)\n" "project" "$DOTNET_DIR"
+                printf "[FAIL]    %-14s build failed (run: dotnet build %s)\n" "project" "$DOTNET_PROJECT"
                 STATUS="NOT READY"
             fi
         else
@@ -172,7 +173,7 @@ for s in "$SCRIPT_DIR"/*.sh; do
 done
 if [ "$perm_issues" -gt 0 ]; then
     printf "[WARN]    %-14s %d script(s) not executable\n" "permissions" "$perm_issues"
-    echo "           Fix: chmod +x scripts/*.sh"
+    echo "           Run scripts with bash (also works on sandbox noexec mounts)"
     WARNINGS=$((WARNINGS + 1))
 else
     printf "[OK]      %-14s all scripts executable\n" "permissions"

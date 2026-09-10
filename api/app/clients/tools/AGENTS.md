@@ -5,3 +5,5 @@
   readiness check and `librechat.yaml`; otherwise the UI requests a redundant standalone key.
 - Run the image-provider resolver, tool loader, and OpenAI image tool tests after changing this
   contract.
+- Image success must follow durable storage. Reuse persisted attachments in both callback paths;
+  `expiredAt` is a retention deadline, so future dates remain deliverable in temporary chats.
