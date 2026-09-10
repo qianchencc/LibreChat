@@ -13,13 +13,28 @@ describe('S3 endpoint routing', () => {
   const originalEnv = { ...process.env };
   const requests: Array<{ method?: string; path: string; body: Buffer }> = [];
   const content = Buffer.from('S3 attachment bytes');
+  const retryErrorMessage =
+    `http://minio.private:9000/private?X-Amz-Signature=private-signature ` +
+    `test-access-key test-secret ${content.toString('base64')}`;
   let failUploadPart = false;
+  let putFailuresRemaining = 0;
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) {
       chunks.push(Buffer.from(chunk));
     }
     requests.push({ method: req.method, path: req.url ?? '', body: Buffer.concat(chunks) });
+    if (req.method === 'PUT' && putFailuresRemaining > 0) {
+      putFailuresRemaining -= 1;
+      res.writeHead(503, {
+        'Content-Type': 'application/xml',
+        'x-amz-request-id': `put-retry-${requests.length}`,
+      });
+      res.end(
+        `<Error><Code>ServiceUnavailable</Code><Message>${retryErrorMessage}</Message></Error>`,
+      );
+      return;
+    }
     if (failUploadPart && req.method === 'PUT' && req.url?.includes('partNumber=')) {
       res.writeHead(403, { 'Content-Type': 'application/xml' });
       res.end('<Error><Code>AccessDenied</Code><Message>Upload denied</Message></Error>');
@@ -56,6 +71,7 @@ describe('S3 endpoint routing', () => {
     jest.resetModules();
     requests.length = 0;
     failUploadPart = false;
+    putFailuresRemaining = 0;
     Object.assign(process.env, {
       AWS_REGION: 'us-east-1',
       AWS_BUCKET_NAME: 'test-bucket',
@@ -148,6 +164,63 @@ describe('S3 endpoint routing', () => {
       expect(requests[0].body).toEqual(content);
     },
   );
+
+  it.each([
+    { scenario: 'recovers after one PUT 503', failures: 1, attempts: 2, succeeds: true },
+    {
+      scenario: 'exhausts three attempts on persistent PUT 503',
+      failures: Number.POSITIVE_INFINITY,
+      attempts: 3,
+      succeeds: false,
+    },
+  ])('$scenario without changing the key or body', async ({ failures, attempts, succeeds }) => {
+    process.env.AWS_MAX_ATTEMPTS = '3';
+    process.env.AWS_RETRY_MODE = 'standard';
+    putFailuresRemaining = failures;
+    const { saveBufferToS3 } = await import('../crud');
+    const { logger } = await import('@librechat/data-schemas');
+    const fileName = 'retry %20.txt';
+    const keyPath = '/test-bucket/files/user123/retry%20%2520.txt';
+    const upload = saveBufferToS3({
+      userId: 'user123',
+      fileName,
+      basePath: 'files',
+      buffer: content,
+    });
+
+    if (succeeds) {
+      const url = new URL(await upload);
+      expect(`${url.origin}${url.pathname}`).toBe(`${publicEndpoint}${keyPath}`);
+      expect(url.searchParams.has('X-Amz-Signature')).toBe(true);
+      expect(logger.error).not.toHaveBeenCalled();
+    } else {
+      const metadata = {
+        httpStatusCode: 503,
+        requestId: 'put-retry-3',
+        attempts: 3,
+        totalRetryDelay: expect.any(Number),
+      };
+      await expect(upload).rejects.toMatchObject({
+        name: 'ServiceUnavailable',
+        message: retryErrorMessage,
+        $metadata: expect.objectContaining(metadata),
+      });
+      expect(logger.error).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith('[saveBufferToS3] Error uploading buffer to S3:', {
+        name: 'ServiceUnavailable',
+        code: undefined,
+        ...metadata,
+      });
+    }
+
+    expect(requests).toHaveLength(attempts);
+    for (const request of requests) {
+      expect(request.method).toBe('PUT');
+      expect(request.path).toBe(requests[0].path);
+      expect(request.path.split('?')[0]).toBe(`/internal/storage${keyPath}`);
+      expect(request.body).toEqual(content);
+    }
+  });
 
   it('routes multipart uploads to the internal endpoint and returns a public URL', async () => {
     const buffer = Buffer.alloc(6 * 1024 * 1024, 'a');
