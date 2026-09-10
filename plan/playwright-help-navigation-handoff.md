@@ -24,11 +24,14 @@ The workflow, retry counts, timeouts and test coverage remain enabled.
 - Ablation: remove the two guards, rebuild, and the controlled Help E2E fails at the original
   URL assertion; both unchanged-URL unit cases also fail. Guards restored afterward.
 - Memory mock E2E: Help suite repeated three times, 9 passed.
-- GitHub full matrix: result to be recorded after completion.
+- GitHub full matrix passed for code commit `9cb66f3a5`:
+  https://github.com/qianchencc/LibreChat/actions/runs/34464358338
+  All four memory/Redis shards, both MCP replica configurations and the final gate succeeded.
 
 ## Release boundary
 
-Use a dedicated `codex/` repair branch for CI verification. Pushing `main` triggers
+Fix pushed to `codex/fix-playwright-help-navigation`; not merged into `main` in this task.
+Pushing `main` triggers
 `.github/workflows/local-deploy.yml` and production deployment.
 
 ## Suggested skills
