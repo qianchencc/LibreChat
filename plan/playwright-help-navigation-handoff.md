@@ -30,9 +30,12 @@ The workflow, retry counts, timeouts and test coverage remain enabled.
 
 ## Release boundary
 
-Fix pushed to `codex/fix-playwright-help-navigation`; not merged into `main` in this task.
-Pushing `main` triggers
-`.github/workflows/local-deploy.yml` and production deployment.
+Following the user's confirmation, fast-forwarded `main` to `924c999aa` and deployed successfully:
+https://github.com/qianchencc/LibreChat/actions/runs/34472442352
+Production reports that exact `BUILD_COMMIT`, the container is running, and `/health` returns `OK`.
+Public `/` and `/login` both return HTTP 200 through the configured proxy (local DNS lookup failed).
+Daily E2E now runs the repaired main branch. This final documentation-only update skips CI to
+avoid redeploying identical application code.
 
 ## Suggested skills
 
