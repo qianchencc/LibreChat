@@ -45,7 +45,7 @@ export async function getGeneratedImageFile(
     tenantId: user.tenantId ?? null,
     context: FileContext.image_generation,
     type: /^image\//,
-    expiredAt: null,
+    $or: [{ expiredAt: null }, { expiredAt: { $gt: new Date() } }],
   });
   return file?.filepath ? file : null;
 }

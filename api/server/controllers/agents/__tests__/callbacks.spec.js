@@ -124,11 +124,21 @@ describe('persisted OpenAI image attachments', () => {
   });
 
   it.each([
-    ['createToolEndCallback', 'image_gen_oai'],
-    ['createToolEndCallback', 'image_edit_oai'],
-    ['createResponsesToolEndCallback', 'image_gen_oai'],
-    ['createResponsesToolEndCallback', 'image_edit_oai'],
-  ])('%s emits the saved %s file without uploading it again', async (callbackName, toolName) => {
+    ['createToolEndCallback', 'image_gen_oai', false],
+    ['createToolEndCallback', 'image_edit_oai', false],
+    ['createResponsesToolEndCallback', 'image_gen_oai', false],
+    ['createResponsesToolEndCallback', 'image_edit_oai', false],
+    ['createToolEndCallback', 'image_gen_oai', true],
+    ['createToolEndCallback', 'image_edit_oai', true],
+    ['createResponsesToolEndCallback', 'image_gen_oai', true],
+    ['createResponsesToolEndCallback', 'image_edit_oai', true],
+  ])('%s: %s temporary=%s', async (callbackName, toolName, temporary) => {
+    if (temporary) {
+      await File.updateOne(
+        { file_id: 'saved-image' },
+        { expiredAt: new Date(Date.now() + 3600000) },
+      );
+    }
     const artifactPromises = [];
     const res = { headersSent: true, writableEnded: false, write: jest.fn() };
     const callback = require('../callbacks')[callbackName]({
