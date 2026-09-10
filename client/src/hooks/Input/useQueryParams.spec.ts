@@ -506,7 +506,8 @@ describe('useQueryParams', () => {
     expect(mockSubmitMessage).not.toHaveBeenCalled();
   });
 
-  it.each([{}, { projectId: 'project-a' }])('keeps an unchanged URL: %j', (params) => {
+  const unchangedUrls: Record<string, string>[] = [{}, { projectId: 'project-a' }];
+  it.each(unchangedUrls)('keeps an unchanged URL: %j', (params) => {
     // Setup
     const mockSetValue = jest.fn();
     const mockHandleSubmit = jest.fn();
