@@ -74,6 +74,11 @@ Production browser acceptance used a synthetic account and confirmed:
   English and Simplified Chinese messages now describe only waiting for the upload to finish, with
   a localization regression test covering the distinction.
 
+The wording fix was deployed from commit `e42b00073322202014d6d0f920c30ee9c3301891` by GitHub
+Actions run `34568650153`. Production reported the same `BUILD_COMMIT`. A real browser loaded the
+production Simplified Chinese locale chunk and confirmed the new upload-wait text was present and
+the retrieval-indexing text was absent.
+
 The synthetic user's users, keys, files, messages, and conversations records were deleted. Account
 cleanup did not remove the exact S3 test object automatically, so that single known object was
 deleted explicitly and a subsequent `HeadObject` returned 404. No other object was inspected or
