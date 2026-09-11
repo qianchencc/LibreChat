@@ -43,10 +43,41 @@ strict provider-only upload, so importing that series would add unrelated behavi
 
 ## Production And Rollback
 
-Deployment and final browser/S3 acceptance are recorded below when completed. Before replacing
-production Compose files, back up the base and override files. Preserve the `pgdata2` Docker
-volume. Rollback restores those files, restarts `rag_api` and `vectordb`, restores prior agent tool
-arrays, and deploys the preceding application image/config.
+Commit `533337de16aabc3454dfe795afd95476a79f8f83` was pushed to `origin/main` and deployed by
+GitHub Actions run `34560234580`. Production reports the same `BUILD_COMMIT`.
+
+Before replacing the production Compose files, the previous files were saved as:
+
+- `docker-compose.yml.before-provider-only-20260911`
+- `docker-compose.override.yaml.before-provider-only-20260911`
+- `.env.before-provider-only-20260911`
+- `/app/logs/provider-only-agent-tools-backup-20260911.json`
+
+The API was force-recreated successfully. The exact `rag_api` and `vectordb` containers were
+removed, while the `librechat_pgdata2` volume was retained for rollback. Five agents were updated
+through the versioned agent update method to remove their empty `file_search` tool marker; no
+agent retains it. Stale `rag_api` and `vectordb` names were also removed from production
+`NO_PROXY`, and temporary Compose preview files were deleted after the active configuration
+rendered without retrieval-runtime references.
+
+Production browser acceptance used a synthetic account and confirmed:
+
+- Agent Builder has no File Context section or File Search tool. Its native tools remain Run Code,
+  Web Search, Artifacts, Ask User, and Memory.
+- Composer image upload created an S3-backed `message_attachment` without an embedded flag, and
+  the provider correctly understood the image.
+- Reload loaded the image from `minio.qianc.ltd`, and the sidebar “Attached files” library showed
+  the same object. The sidebar library therefore remains S3/MinIO-backed and is independent of
+  retrieval or embedding.
+
+The synthetic user's users, keys, files, messages, and conversations records were deleted. Account
+cleanup did not remove the exact S3 test object automatically, so that single known object was
+deleted explicitly and a subsequent `HeadObject` returned 404. No other object was inspected or
+modified.
+
+Rollback restores the backed-up Compose files, restarts `rag_api` and `vectordb`, restores the
+previous agent tool arrays, and deploys the preceding application image/config. Do not delete the
+retained `librechat_pgdata2` volume.
 
 ## Suggested Skills
 
