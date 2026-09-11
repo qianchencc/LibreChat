@@ -10,6 +10,7 @@ import {
 import English from './en/translation.json';
 import Spanish from './es/translation.json';
 import French from './fr/translation.json';
+import SimplifiedChinese from './zh-Hans/translation.json';
 import { TranslationKeys } from '~/hooks';
 import i18n from './i18n';
 
@@ -66,6 +67,15 @@ describe('i18next translation tests', () => {
 
     await changeLanguageSafely('fr');
     expect(i18n.t('com_endpoint_default_with_num', { 0: 'Marie' })).toBe('par défaut : Marie');
+  });
+
+  it('describes delayed uploads without claiming retrieval indexing', () => {
+    expect(English.com_ui_upload_delay).toBe(
+      'Uploading "{{0}}" is taking more time than anticipated. Please wait for the upload to finish.',
+    );
+    expect(SimplifiedChinese.com_ui_upload_delay).toBe(
+      '上传“{{0}}”所需时间比预期更长，请等待上传完成。',
+    );
   });
 
   it('should normalize language selector values to locale files', () => {

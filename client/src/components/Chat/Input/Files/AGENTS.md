@@ -5,3 +5,5 @@
   and SharePoint source flows consistent with that rule.
 - Provider capability and endpoint file config determine selectable MIME types. Unsupported files
   should be rejected rather than silently routed to context, file search, or code execution.
+- The delayed-upload toast reports transfer progress only; do not describe it as retrieval or
+  indexing unless its trigger is explicitly scoped to such a workflow.

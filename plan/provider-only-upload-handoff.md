@@ -69,6 +69,10 @@ Production browser acceptance used a synthetic account and confirmed:
 - Reload loaded the image from `minio.qianc.ltd`, and the sidebar “Attached files” library showed
   the same object. The sidebar library therefore remains S3/MinIO-backed and is independent of
   retrieval or embedding.
+- A follow-up screenshot exposed stale wording in the generic delayed-upload toast: every slow
+  provider upload was described as retrieval indexing. The upload route was already correct; the
+  English and Simplified Chinese messages now describe only waiting for the upload to finish, with
+  a localization regression test covering the distinction.
 
 The synthetic user's users, keys, files, messages, and conversations records were deleted. Account
 cleanup did not remove the exact S3 test object automatically, so that single known object was
