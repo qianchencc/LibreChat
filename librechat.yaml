@@ -1,6 +1,11 @@
 version: 1.3.14
 cache: true
 
+# Agents write memories on explicit requests; no background extraction model.
+memory:
+  disabled: false
+  personalize: true
+
 fileStrategies:
   avatar: local
   image: s3

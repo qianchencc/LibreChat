@@ -17,3 +17,9 @@ When adding or changing code that mutates user documents, invalidate the auth us
 ## Work before work
 
 本项目从另一个项目中fork而来，在涉及改进时优先检查上游是否已经包含类似修复者有何值得引进的功能。
+
+## Memory diagnostics
+
+Check the loaded YAML memory block separately from role permissions and the agent's `memory`
+tool. Query `MemoryEntry` (`memoryentries`), not `memories`; scope probes to a synthetic user.
+For production activation, acceptance and rollback, see `plan/memory-enablement-handoff.md`.
