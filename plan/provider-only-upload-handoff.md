@@ -87,6 +87,13 @@ completion (no warning) and a genuinely delayed upload (warning retained). Produ
 were 38–98 ms and the LAN API probe was about 6 ms, ruling out storage and server load as the fixed
 pause. Upstream still carried the state-based implementation when checked on September 11, 2026.
 
+The timer fix was deployed from commit `1a534c5369e6064bac7c26d078f74a4b15e20d2d` by GitHub
+Actions run `34570442665`. Production reported the same `BUILD_COMMIT`. Browser acceptance with a
+synthetic verified user uploaded a 709-byte PNG successfully, observed the completed attachment,
+then waited beyond six seconds with an empty notification region. Removing the attachment through
+the UI left zero objects under that synthetic user's S3 prefixes. The account, session, and
+verification token were then deleted.
+
 The synthetic user's users, keys, files, messages, and conversations records were deleted. Account
 cleanup did not remove the exact S3 test object automatically, so that single known object was
 deleted explicitly and a subsequent `HeadObject` returned 404. No other object was inspected or
