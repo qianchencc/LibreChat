@@ -18,6 +18,19 @@ interface:
     - 'artifacts'
 
 endpoints:
+  agents:
+    capabilities:
+      - 'deferred_tools'
+      - 'execute_code'
+      - 'web_search'
+      - 'artifacts'
+      - 'subagents'
+      - 'actions'
+      - 'skills'
+      - 'memory'
+      - 'ask_user_question'
+      - 'tools'
+      - 'chain'
   custom:
     - name: '尘Proxy'
       apiKey: 'user_provided'
