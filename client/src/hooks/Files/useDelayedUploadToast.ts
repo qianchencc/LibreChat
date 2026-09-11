@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 import { useToastContext } from '@librechat/client';
 import { useLocalize } from '~/hooks';
 
 export const useDelayedUploadToast = () => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
-  const [uploadTimers, setUploadTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  const uploadTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const determineDelay = (fileSize: number): number => {
     const baseDelay = 5000;
@@ -16,11 +16,13 @@ export const useDelayedUploadToast = () => {
   const startUploadTimer = (fileId: string, fileName: string, fileSize: number) => {
     const delay = determineDelay(fileSize);
 
-    if (uploadTimers[fileId]) {
-      clearTimeout(uploadTimers[fileId]);
+    const existingTimer = uploadTimers.current[fileId];
+    if (existingTimer !== undefined) {
+      clearTimeout(existingTimer);
     }
 
     const timer = setTimeout(() => {
+      delete uploadTimers.current[fileId];
       const message = localize('com_ui_upload_delay', { 0: fileName });
       showToast({
         message,
@@ -29,16 +31,14 @@ export const useDelayedUploadToast = () => {
       });
     }, delay);
 
-    setUploadTimers((prev) => ({ ...prev, [fileId]: timer }));
+    uploadTimers.current[fileId] = timer;
   };
 
   const clearUploadTimer = (fileId: string) => {
-    if (uploadTimers[fileId]) {
-      clearTimeout(uploadTimers[fileId]);
-      setUploadTimers((prev) => {
-        const { [fileId]: _, ...rest } = prev;
-        return rest;
-      });
+    const timer = uploadTimers.current[fileId];
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      delete uploadTimers.current[fileId];
     }
   };
 

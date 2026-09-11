@@ -7,3 +7,5 @@
   should be rejected rather than silently routed to context, file search, or code execution.
 - The delayed-upload toast reports transfer progress only; do not describe it as retrieval or
   indexing unless its trigger is explicitly scoped to such a workflow.
+- Keep upload timer handles in a ref, not render state: completion can run before a state-backed
+  timer registry reaches the callback closure, leaving a false delayed-upload warning behind.

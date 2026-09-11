@@ -79,6 +79,14 @@ Actions run `34568650153`. Production reported the same `BUILD_COMMIT`. A real b
 production Simplified Chinese locale chunk and confirmed the new upload-wait text was present and
 the retrieval-indexing text was absent.
 
+A subsequent timing diagnosis found that the delayed-upload timer registry used React state even
+though it was not rendered. When an upload completed against the same render closure that started
+the timer, cleanup could not see the newly queued handle and the warning still fired five seconds
+later. The registry now uses a synchronous ref. Regression coverage verifies both immediate
+completion (no warning) and a genuinely delayed upload (warning retained). Production MinIO probes
+were 38–98 ms and the LAN API probe was about 6 ms, ruling out storage and server load as the fixed
+pause. Upstream still carried the state-based implementation when checked on September 11, 2026.
+
 The synthetic user's users, keys, files, messages, and conversations records were deleted. Account
 cleanup did not remove the exact S3 test object automatically, so that single known object was
 deleted explicitly and a subsequent `HeadObject` returned 404. No other object was inspected or
